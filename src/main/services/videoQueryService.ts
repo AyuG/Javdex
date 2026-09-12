@@ -1,3 +1,4 @@
+import { resolveExternalRatingSource } from './externalRatingSource'
 import { catalogReadService } from './catalogReadService'
 import { getVideoResourceInLibrary } from '../db/videoRepo'
 import {
@@ -37,7 +38,8 @@ export function createVideoQueryService(
 
   return {
     list(scope, query): ScopedVideoListResult {
-      return catalog.list(scope, query ?? {})
+      return catalog.list(scope, query ?? {}, query?.sortBy === 'external_rating'
+        ? resolveExternalRatingSource(scope) : null)
     },
     get(scope, id): ScopedVideoDetail | null {
       const detail: ScopedStoredVideoDetail | null = catalog.get(scope, id)

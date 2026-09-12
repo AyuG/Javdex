@@ -43,7 +43,9 @@ port.on('message', (message: CatalogReadCommand | {type:'close'}) => {
     if (!message.query) throw new Error('Missing catalog query')
     if (message.operation === 'scoped-video-list') {
       const [scope,query]=videoIpcSchemas[IPC.VIDEO_LIST].parse([message.scope,message.query])
-      port.postMessage({type:'result',id:message.id,result:catalog.list(scope,query)})
+      const source = message.externalRatingSource ?? null
+      if (typeof source !== 'string' && source !== null) throw new Error('Invalid external rating source')
+      port.postMessage({type:'result',id:message.id,result:catalog.list(scope,query,source)})
       return
     }
     if (message.operation === 'scoped-video-years') {

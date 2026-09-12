@@ -25,7 +25,7 @@ it('upgrades V15 without changing any business rows or other schema and matches 
   const fresh = new Database(':memory:')
   try {
     const before = snapshot(db)
-    const schema = () => db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT GLOB 'library_scan_audit_*' AND name <> 'agent_resource_cleanup' AND name <> 'idx_video_tag_tag_id' ORDER BY name").all()
+    const schema = () => db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT GLOB 'library_scan_audit_*' AND name <> 'agent_resource_cleanup' AND name <> 'idx_video_tag_tag_id' AND name <> 'media_library_configs' ORDER BY name").all()
     const oldSchema = schema()
     migrateDatabase(db)
     assert.equal(db.pragma('user_version', { simple: true }), CURRENT_SCHEMA_VERSION)

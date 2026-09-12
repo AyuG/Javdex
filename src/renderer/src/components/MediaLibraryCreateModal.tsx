@@ -515,7 +515,8 @@ export default function MediaLibraryCreateModal({
                           {{
                             add_time: '添加时间',
                             release_date: '发行日期',
-                            rating: '评分',
+                            rating: '自定义评分',
+                            external_rating: '外部评分',
                             code: '番号'
                           }[sort]}
                         </option>

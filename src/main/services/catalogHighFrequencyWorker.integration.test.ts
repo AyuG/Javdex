@@ -120,3 +120,51 @@ it('preserves Web search/sort/filter/page semantics and observes committed membe
   assert.deepEqual(await client!.readVideoYears({ kind: 'all' }), [])
   assert.deepEqual(await client!.readHome({ seed: 'fixture' }), createHomeDiscoveryRepo({ database: db }).load({ seed: 'fixture' }))
 })
+
+it('queries external ratings through the real worker and immediately switches library/global sources without rescraping', async () => {
+  const { resolveExternalRatingSource } = await import('./externalRatingSource')
+  const { updateSettings, resetSettingsCacheForTests } = await import('../settings/settingsStore')
+  const { getMediaLibraryConfig, updateMediaLibraryConfig } = await import('../db/mediaLibraryRepo')
+  const { LOCAL_NFO_SOURCE_NAME } = await import('../../shared/videoMetadataSourceConstants')
+  resetSettingsCacheForTests()
+  const db = setup()
+  await client!.dispose()
+  client = new CatalogReadWorkerClient({ resolveExternalRatingSource,
+    contextProvider: () => ({ identity: db, path: db.name, revision: String(getDatabaseReadRevision(db).changes) }),
+    transportFactory: context => createCatalogReadWorkerTransport(bundle, context.path) })
+  try {
+    db.exec(`INSERT INTO video_external_stats(video_id,source,rating_average) VALUES
+      (1,'JavLibrary',4.9),(2,'JavLibrary',3.1),(1,'JavDB',2.2),(2,'JavDB',4.7)`)
+    db.prepare('INSERT INTO video_external_stats(video_id,source,rating_average) VALUES (3,?,5)').run(LOCAL_NFO_SOURCE_NAME)
+    const stats = db.prepare('SELECT * FROM video_external_stats').all()
+    const videos = db.prepare('SELECT * FROM videos').all()
+    const query = { sortBy: 'external_rating' as const, sortDir: 'desc' as const, limit: 2 }
+    const scope = { kind: 'library' as const, libraryId: 1 }
+    const override = (defaultVideoScraper: string | null) => updateMediaLibraryConfig({
+      libraryId: 1, expectedRevision: getMediaLibraryConfig(1)!.revision, patch: { defaultVideoScraper } })
+    updateSettings({ defaultScraper: 'JavDB' })
+    override('JavLibrary')
+    const library = await client.readVideos(scope, query)
+    assert.deepEqual(library.items.map(v => v.id), [1, 2])
+    override('JavDB')
+    assert.deepEqual((await client.readVideos(scope, query)).items.map(v => v.id), [2, 1])
+    override(null)
+    assert.deepEqual((await client.readVideos(scope, query)).items.map(v => v.id), [2, 1])
+    const beforeGlobal = await client.readVideos(scope, query)
+    updateSettings({ defaultScraper: 'JavLibrary' })
+    const afterGlobal = await client.readVideos(scope, query)
+    assert.deepEqual(afterGlobal.items.map(v => v.id), [1, 2])
+    assert.notEqual(afterGlobal.readRevision, beforeGlobal.readRevision)
+    assert.equal(afterGlobal.total, 75)
+    for (const sortDir of ['asc', 'desc'] as const) {
+      override(LOCAL_NFO_SOURCE_NAME)
+      const result = await client.readVideos(scope, { ...query, sortDir, limit: 100 })
+      const expected = createScopedVideoCatalogRepo(db).list(scope, { ...query, sortDir, limit: 100 }, null)
+      assert.deepEqual(result.items.map(v => v.id), expected.items.map(v => v.id))
+      assert.equal(result.total, 75)
+      assert.equal(new Set(result.items.map(v => v.id)).size, 75)
+    }
+    assert.deepEqual(db.prepare('SELECT * FROM video_external_stats').all(), stats)
+    assert.deepEqual(db.prepare('SELECT * FROM videos').all(), videos)
+  } finally { resetSettingsCacheForTests() }
+})
