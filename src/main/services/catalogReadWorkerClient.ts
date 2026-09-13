@@ -15,7 +15,7 @@ import type { TagFilterOptionsPage, TagOptionsQuery } from '@shared/commonTypes'
 
 export type CatalogReadPage = ScopedVideoListResult | HomeSnapshot | number[] | WebBrowse | WebHome | WebCollections | boolean | ScanAuditViewPage | ScanAuditReadHeader | ScanAuditIndexPage | TagFilterOptionsPage | ClassificationListPage<ClassificationImageCandidate>
 type CatalogReadRequest =
-  | { operation: 'scoped-video-list'; scope: CatalogScope; query: VideoQuery }
+  | { operation: 'scoped-video-list'; scope: CatalogScope; query: VideoQuery; externalRatingSource?: string | null }
   | { operation: 'scoped-video-years'; query: CatalogScope }
   | { operation: 'home-load'; query: HomeDiscoveryInput }
   | { operation: 'home-search'; query: GlobalSearchInput }
@@ -56,6 +56,7 @@ export interface CatalogReadWorkerTransport {
 export interface CatalogReadWorkerClientOptions {
   contextProvider: () => CatalogReadContext
   transportFactory: (context: CatalogReadContext) => CatalogReadWorkerTransport
+  resolveExternalRatingSource?: (scope: CatalogScope) => string | null
   startupTimeoutMs?: number
   queryTimeoutMs?: number
   queueTimeoutMs?: number
@@ -125,8 +126,10 @@ export class CatalogReadWorkerClient {
   readVideos(scope: CatalogScope, query: VideoQuery = {}, signal?: AbortSignal): Promise<ScopedVideoListResult> {
     try {
       const [identity, filters] = videoIpcSchemas[IPC.VIDEO_LIST].parse([scope, query])
-      const request = {operation:'scoped-video-list' as const,scope:identity,query:filters ?? {}}
-      return this.enqueue(request,[request.operation,identity,request.query],signal) as Promise<ScopedVideoListResult>
+      const source = filters?.sortBy === 'external_rating'
+        ? { externalRatingSource: this.options.resolveExternalRatingSource?.(identity) ?? null } : {}
+      const request = {operation:'scoped-video-list' as const,scope:identity,query:filters ?? {}, ...source}
+      return this.enqueue(request,[request.operation,identity,request.query,source],signal) as Promise<ScopedVideoListResult>
     } catch(error) { return Promise.reject(error) }
   }
   readVideoYears(scope: CatalogScope, signal?: AbortSignal): Promise<number[]> {

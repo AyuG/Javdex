@@ -46,6 +46,7 @@ export const MEDIA_LIBRARY_DEFAULT_SORTS = [
   'add_time',
   'release_date',
   'rating',
+  'external_rating',
   'code'
 ] as const satisfies readonly MediaLibraryDefaultSortBy[]
 
@@ -279,4 +280,12 @@ export interface MediaLibraryRootConflict {
   rootId: number
   libraryId: number
   path: string
+}
+
+/** A null/empty library override follows the current global video scraper. */
+export function resolveMediaLibraryDefaultScraper(
+  libraryDefault: string | null | undefined,
+  globalDefault: string
+): string {
+  return libraryDefault?.trim() || globalDefault.trim()
 }

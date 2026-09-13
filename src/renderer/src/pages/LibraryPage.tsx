@@ -1,3 +1,4 @@
+import { resolveMediaLibraryDefaultScraper } from '@shared/mediaLibraryTypes'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMatch, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
@@ -103,14 +104,16 @@ const STATUS_LABELS: Record<string, string> = {
 const SORT_LABELS: Record<NonNullable<VideoQuery['sortBy']>, string> = {
   add_time: '添加时间',
   release_date: '发行日期',
-  rating: '评分',
+  rating: '自定义评分',
+  external_rating: '外部评分',
   code: '番号'
 }
 
 const SORT_SWITCH_OPTIONS: SortSwitchOption<NonNullable<VideoQuery['sortBy']>>[] = [
   { value: 'release_date', label: '发行', title: '发行日期' },
   { value: 'add_time', label: '添加', title: '添加时间' },
-  { value: 'rating', label: '评分' },
+  { value: 'rating', label: '自定义评分' },
+  { value: 'external_rating', label: '外部评分' },
   { value: 'code', label: '番号' }
 ]
 
@@ -190,7 +193,7 @@ export default function LibraryPage({ libraryId }: { libraryId: number }): JSX.E
     }),
     [library?.config.defaultSortBy, library?.config.defaultSortDir]
   )
-  const effectiveDefaultScraper = library?.config.defaultVideoScraper || defaultScraper
+  const effectiveDefaultScraper = resolveMediaLibraryDefaultScraper(library?.config.defaultVideoScraper, defaultScraper)
 
   const dismissOverlays = useCallback(() => {
     setFilterOpen(false)

@@ -750,7 +750,7 @@ export function ScrapingSettingsTab({
     <div className={styles.sectionStack}>
       <AppFormSection
         title="默认影片刮削器"
-        hint="该选择仅影响当前媒体库发起的默认刮削动作。"
+        hint="用于当前媒体库的默认刮削和外部评分排序；切换后不会自动重新刮削。"
       >
         <AppFormField label="刮削插件">
           <SelectControl
@@ -814,7 +814,8 @@ export function DisplaySettingsTab({
                     {
                       add_time: '添加时间',
                       release_date: '发行日期',
-                      rating: '评分',
+                      rating: '自定义评分',
+                      external_rating: '外部评分',
                       code: '番号'
                     }[sort]
                   }

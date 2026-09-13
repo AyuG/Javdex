@@ -1,3 +1,4 @@
+import SelectControl from '../components/SelectControl'
 import assert from 'node:assert/strict'
 import { afterEach, describe, it } from 'node:test'
 import React from 'react'
@@ -154,4 +155,19 @@ it('feeds summary-only history into the paged panel and refreshes pages when the
  assert.ok(calls.length>first)
  for(const call of calls){const request=call as {snapshot:{runId:string};query:{limit:number}};assert.equal(request.snapshot.runId,'header-only');assert.equal(request.query.limit,100)}
  assert.match(nodeText(renderer!.root),/审计|明细/)
+})
+
+it('names custom and external rating separately and edits the default sort draft', async () => {
+  const { DisplaySettingsTab } = await import('./MediaLibrarySettingsTabs')
+  const updates: unknown[] = []
+  await act(async () => {
+    renderer = TestRenderer.create(<DisplaySettingsTab configDraft={library.config}
+      updateConfigDraft={(key, value) => { updates.push([key, value]) }} formDisabled={false} />)
+  })
+  const sort = renderer!.root.findAllByType(SelectControl).find(select => select.props.value === library.config.defaultSortBy)!
+  const options = React.Children.toArray(sort.props.children) as React.ReactElement<{ value: string; children: string }>[]
+  assert.equal(options.find(option => option.props.value === 'rating')!.props.children, '自定义评分')
+  assert.equal(options.find(option => option.props.value === 'external_rating')!.props.children, '外部评分')
+  await act(async () => { sort.props.onChange({ target: { value: 'external_rating' } }) })
+  assert.deepEqual(updates, [['defaultSortBy', 'external_rating']])
 })

@@ -480,3 +480,32 @@ it('shares catalog admission with tags, independently cancels merged subscribers
     assert.equal(worker.sent.length, 4)
   } finally { await f.close() }
 })
+
+it('does not coalesce external rating requests across effective source changes', async () => {
+  let source = 'JavLibrary'
+  const worker = new Transport()
+  const identity = {}
+  const client = new CatalogReadWorkerClient({
+    contextProvider: () => ({ identity, path: '/synthetic/source.db', revision: 'same' }),
+    transportFactory: () => worker,
+    resolveExternalRatingSource: () => source
+  })
+  try {
+    const scope = { kind: 'library' as const, libraryId: 1 }
+    const query = { sortBy: 'external_rating' as const }
+    const first = client.readVideos(scope, query)
+    worker.ready()
+    assert.equal(worker.sent[0].operation, 'scoped-video-list')
+    source = 'JavDB'
+    const second = client.readVideos(scope, query)
+    worker.result({ items: [], total: 0 })
+    await first
+    assert.equal(worker.sent.length, 2)
+    const messages = worker.sent.filter(message => message.operation === 'scoped-video-list')
+    assert.deepEqual(messages.map(message => message.externalRatingSource), ['JavLibrary', 'JavDB'])
+    worker.result({ items: [], total: 0 })
+    await second
+  } finally {
+    const closing = client.dispose(); worker.termination.resolve(); await closing
+  }
+})

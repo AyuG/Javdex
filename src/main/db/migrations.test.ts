@@ -1508,17 +1508,10 @@ describe('database schema', () => {
   it('leaves current-version databases unchanged', () => {
     const db = new Database(':memory:')
     try {
-      db.exec(`
-        CREATE TABLE actresses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          main_name TEXT UNIQUE NOT NULL,
-          avatar_path TEXT,
-          avatar_source_path TEXT,
-          avatar_crop_json TEXT
-        )
-      `)
-      db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`)
+      migrateDatabase(db)
+      const before = db.prepare('SELECT type,name,sql FROM sqlite_master ORDER BY name').all()
       migrateFixture(db)
+      assert.deepEqual(db.prepare('SELECT type,name,sql FROM sqlite_master ORDER BY name').all(), before)
       assert.equal(db.pragma('user_version', { simple: true }), CURRENT_SCHEMA_VERSION)
       const cols = (db.prepare('PRAGMA table_info(actresses)').all() as { name: string }[]).map(
         (c) => c.name

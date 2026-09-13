@@ -10,7 +10,7 @@ interface SchemaRow { type: string; name: string; tbl_name: string; sql: string 
 function schema(db: Database.Database): SchemaRow[] {
   const rows = db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' OR type='index' ORDER BY name").all() as SchemaRow[]
   // Git checkout line endings must not change the logical schema comparison.
-  return rows.map(row => ({ ...row, sql: row.sql?.replaceAll('\r\n', '\n') ?? null }))
+  return rows.map(row => ({ ...row, sql: row.sql?.replaceAll('\r\n', '\n').replace('CREATE TABLE "media_library_configs"', 'CREATE TABLE media_library_configs') ?? null }))
 }
 
 function quote(name: string): string { return `"${name.replaceAll('"', '""')}"` }
@@ -67,8 +67,8 @@ function v15(): Database.Database {
 
 function assertUpgrade(db: Database.Database, before: ReturnType<typeof snapshot>) {
   migrateDatabase(db)
-  assert.equal(CURRENT_SCHEMA_VERSION, 16)
-  assert.equal(db.pragma('user_version', { simple: true }), 16)
+  assert.equal(CURRENT_SCHEMA_VERSION, 17)
+  assert.equal(db.pragma('user_version', { simple: true }), CURRENT_SCHEMA_VERSION)
   assert.deepEqual(snapshot(db, before.map(table => table.name)), before)
   checkIntegrity(db)
   const fresh = new Database(':memory:')
@@ -94,7 +94,7 @@ it('adds combined V16 to the released V15 schema without rewriting any legacy da
     for (const table of added.filter(row => row.type === 'table')) {
       assert.equal((db.prepare(`SELECT COUNT(*) AS n FROM ${quote(table.name)}`).get() as { n: number }).n, 0)
     }
-    assert.deepEqual(schema(db).filter(row => row.name !== 'idx_video_tag_tag_id' && oldSchema.some(old => old.name === row.name)), oldSchema.filter(row => row.name !== 'idx_video_tag_tag_id'))
+    assert.deepEqual(schema(db).filter(row => row.name !== 'idx_video_tag_tag_id' && row.name !== 'media_library_configs' && oldSchema.some(old => old.name === row.name)), oldSchema.filter(row => row.name !== 'idx_video_tag_tag_id' && row.name !== 'media_library_configs'))
     assert.deepEqual(auditBytes(), originalBytes)
     // A second startup must remain data- and schema-idempotent.
     assertUpgrade(db, before)
