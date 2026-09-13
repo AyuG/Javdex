@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Windows test and build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+        env:
+          # Match the complete Windows suite deadline in release.yml.
+          JAVDEX_TEST_TIMEOUT_MS: "900000"
+
+      - name: Build
+        run: npm run build
+
+  package-win:
+    name: Package Windows
+    needs: test
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package
+        run: npm run dist -- --platform win
+
+      - name: Verify packaged Agent runtime
+        run: npm run packaging:verify-agent-runtime
+
+      - name: Verify Windows artifacts
+        shell: pwsh
+        run: |
+          if (-not (Get-ChildItem -Path dist -Filter '*-Setup-*.exe' -File)) {
+            throw 'No Windows NSIS installer was produced.'
+          }
+          if (-not (Get-ChildItem -Path dist -Filter '*.zip' -File)) {
+            throw 'No Windows ZIP package was produced.'
+          }
+          Get-ChildItem -Path dist -File | Select-Object Name, Length
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Javdex-win
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.blockmap
+            dist/*.yml
+            dist/*.yaml
+          if-no-files-found: error
