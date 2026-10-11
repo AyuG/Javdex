@@ -126,3 +126,8 @@ describe('video query IPC schemas', () => {
     assert.equal(getSchema.safeParse([libraryScope, 42, 'unexpected']).success, false)
   })
 })
+
+it('accepts external_rating through video query IPC while rejecting arbitrary sort values', () => {
+  assert.equal(videoIpcSchemas[IPC.VIDEO_LIST].safeParse([libraryScope, { sortBy: 'external_rating' }]).success, true)
+  assert.equal(videoIpcSchemas[IPC.VIDEO_LIST].safeParse([libraryScope, { sortBy: 'invalid' }]).success, false)
+})

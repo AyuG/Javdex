@@ -296,3 +296,86 @@ it('reuses count across pages and sort while isolating scope/filter/page and cal
     assert.equal(repo.list(scope).total, 1)
   } finally { database.close() }
 })
+
+function externalRatingFixture() {
+  const db = createFixture()
+  db.exec('DELETE FROM videos')
+  const ratings = [1, 5, 2, 3, 0, 4, 2]
+  const dates = ['01', '02', '03', '06', '07', '04', '03']
+  const libraryRatings = [4.5, 3.6, 4.5, null, undefined, 0, 4.5]
+  const dbRatings = [1, 5, 2, 4, 3, null, 2]
+  for (let index = 0; index < ratings.length; index++) {
+    const id = 201 + index, date = `2024-01-${dates[index]}`
+    db.prepare('INSERT INTO videos(id,code,rating,release_date,add_time) VALUES (?,?,?,?,?)')
+      .run(id, `SORT-${id}`, ratings[index], `2024-02-0${index + 1}`, date)
+    db.prepare("INSERT INTO library_video_memberships(library_id,video_id,added_at,updated_at,discovery_key) VALUES (1,?,?,?,?)")
+      .run(id, date, date, id)
+    const stats = db.prepare('INSERT INTO video_external_stats(video_id,source,rating_average) VALUES (?,?,?)')
+    if (libraryRatings[index] !== undefined) stats.run(id, 'JavLibrary', libraryRatings[index])
+    stats.run(id, 'JavDB', dbRatings[index])
+    stats.run(id, '本地 NFO（内置）', 5)
+  }
+  return db
+}
+for (const sortDir of ['asc', 'desc'] as const) {
+  it(`sorts external ratings ${sortDir}, keeps zero rated and NULL/missing last, and breaks ties by membership time then ID`, () => {
+    const db = externalRatingFixture()
+    try {
+      const repo = createScopedVideoCatalogRepo(db)
+      const query = { sortBy: 'external_rating' as const, sortDir }
+      const scope = { kind: 'library' as const, libraryId: 1 }
+      const expected = sortDir === 'asc' ? [206, 202, 203, 207, 201, 205, 204] : [203, 207, 201, 202, 206, 205, 204]
+      const result = repo.list(scope, query, 'JavLibrary')
+      assert.deepEqual(result.items.map(v => v.id), expected)
+      assert.equal(result.total, 7)
+      const pages = [0, 2, 4, 6].flatMap(offset => {
+        const page = repo.list(scope, { ...query, limit: 2, offset }, 'JavLibrary')
+        assert.equal(page.total, 7)
+        assert.equal(page.readRevision, result.readRevision)
+        assert.deepEqual(repo.listPage(scope, { ...query, limit: 2, offset }, 'JavLibrary'), page.items)
+        return page.items.map(v => v.id)
+      })
+      assert.deepEqual(pages, expected)
+      assert.equal(new Set(pages).size, 7)
+      assert.deepEqual(repo.list(scope, { ...query, offset: 7 }, 'JavLibrary').items, [])
+      assert.deepEqual(repo.list(scope, { ...query, minRating: 5 }, 'JavLibrary').items.map(v => v.id), [202])
+    } finally { db.close() }
+  })
+}
+it('isolates cached source pages and read revisions without changing stats or total', () => {
+  const db = externalRatingFixture()
+  try {
+    const repo = createScopedVideoCatalogRepo(db), scope = { kind: 'library' as const, libraryId: 1 }
+    const query = { sortBy: 'external_rating' as const, sortDir: 'desc' as const }
+    const before = db.prepare('SELECT * FROM video_external_stats').all()
+    const a = repo.list(scope, query, 'JavLibrary'), b = repo.list(scope, query, 'JavDB')
+    assert.deepEqual(b.items.map(v => v.id), [202, 204, 205, 203, 207, 201, 206])
+    assert.notEqual(a.readRevision, b.readRevision)
+    assert.deepEqual(repo.list(scope, query, 'JavLibrary'), a)
+    for (const source of [null, 'Unavailable', "JavDB' OR 1=1 --"]) {
+      const unavailable = repo.list(scope, query, source)
+      assert.equal(unavailable.total, 7)
+      assert.deepEqual(unavailable.items.map(v => v.id), [205, 204, 206, 203, 207, 202, 201])
+    }
+    assert.deepEqual(db.prepare('SELECT * FROM video_external_stats').all(), before)
+  } finally { db.close() }
+})
+it('preserves all existing sort directions including custom rating despite conflicting external scores', () => {
+  const db = externalRatingFixture()
+  try {
+    const repo = createScopedVideoCatalogRepo(db), scope = { kind: 'library' as const, libraryId: 1 }
+    const cases = [
+      ['rating', 'desc', [202, 206, 204, 203, 207, 201, 205]],
+      ['rating', 'asc', [205, 201, 203, 207, 204, 206, 202]],
+      ['add_time', 'desc', [205, 204, 206, 207, 203, 202, 201]],
+      ['add_time', 'asc', [201, 202, 203, 207, 206, 204, 205]],
+      ['code', 'asc', [201, 202, 203, 204, 205, 206, 207]],
+      ['code', 'desc', [207, 206, 205, 204, 203, 202, 201]],
+      ['release_date', 'asc', [201, 202, 203, 204, 205, 206, 207]],
+      ['release_date', 'desc', [207, 206, 205, 204, 203, 202, 201]]
+    ] as const
+    for (const [sortBy, sortDir, expected] of cases) {
+      assert.deepEqual(repo.list(scope, { sortBy, sortDir }).items.map(v => v.id), [...expected])
+    }
+  } finally { db.close() }
+})

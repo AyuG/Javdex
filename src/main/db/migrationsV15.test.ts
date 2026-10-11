@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS library_scan_runs (
       auto_merge_same_code_resources INTEGER NOT NULL DEFAULT 1,
       remove_resource_less_memberships INTEGER NOT NULL DEFAULT 0,
       default_video_scraper TEXT,
-      default_sort_by TEXT NOT NULL DEFAULT 'release_date',
+      default_sort_by TEXT NOT NULL DEFAULT 'release_date'
+        CHECK(default_sort_by IN ('add_time', 'release_date', 'rating', 'code')),
       default_sort_dir TEXT NOT NULL DEFAULT 'desc',
       include_in_home_discovery INTEGER NOT NULL DEFAULT 1,
       revision INTEGER NOT NULL DEFAULT 1,
@@ -95,7 +96,7 @@ describe('V15 local NFO import migration', () => {
     try {
       database.pragma('foreign_keys = ON')
       migrateDatabase(database)
-      assert.equal(CURRENT_SCHEMA_VERSION, 16)
+      assert.equal(CURRENT_SCHEMA_VERSION, 17)
       assert.equal(database.pragma('user_version', { simple: true }), CURRENT_SCHEMA_VERSION)
       assert.equal(columnNames(database, 'media_library_configs').has('auto_import_local_nfo'), true)
       assert.equal(tableExists(database, 'pending_resource_identities'), true)

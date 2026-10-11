@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS media_library_configs (
         CHECK(auto_import_local_nfo IN (0, 1)),
     default_video_scraper TEXT,
     default_sort_by TEXT NOT NULL DEFAULT 'release_date'
-        CHECK(default_sort_by IN ('add_time', 'release_date', 'rating', 'code')),
+        CHECK(default_sort_by IN ('add_time', 'release_date', 'rating', 'external_rating', 'code')),
     default_sort_dir TEXT NOT NULL DEFAULT 'desc' CHECK(default_sort_dir IN ('asc', 'desc')),
     include_in_home_discovery INTEGER NOT NULL DEFAULT 1
         CHECK(include_in_home_discovery IN (0, 1)),

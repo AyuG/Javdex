@@ -26,8 +26,8 @@ export interface ScopedStoredVideoDetail extends StoredVideoDetail {
 }
 
 export interface ScopedVideoCatalogRepo {
-  list(scope: CatalogScope, query?: VideoQuery): ScopedVideoListResult
-  listPage(scope: CatalogScope, query?: VideoQuery): ScopedVideo[]
+  list(scope: CatalogScope, query?: VideoQuery, externalRatingSource?: string | null): ScopedVideoListResult
+  listPage(scope: CatalogScope, query?: VideoQuery, externalRatingSource?: string | null): ScopedVideo[]
   listByIds(scope: CatalogScope, videoIds: number[]): ScopedVideo[]
   listByLibrarySelections(
     selections: Array<{ videoId: number; libraryId: number }>
@@ -270,12 +270,14 @@ function buildWhere(
   }
 }
 
-function orderBy(query: VideoQuery): string {
+function orderBy(query: VideoQuery, ratingColumn = 'external_stats.rating_average'): string {
   const direction = query.sortDir === 'asc' ? 'ASC' : 'DESC'
   switch (query.sortBy ?? 'add_time') {
     case 'release_date':
       return `(v.release_date IS NULL OR trim(v.release_date) = '') ASC,
               v.release_date ${direction}, scope_m.membership_added_at DESC, v.id ASC`
+    case 'external_rating':
+      return `(${ratingColumn} IS NULL) ASC, ${ratingColumn} ${direction}, scope_m.membership_added_at DESC, v.id ASC`
     case 'rating':
       return `v.rating ${direction}, scope_m.membership_added_at DESC, v.id ASC`
     case 'code':
@@ -381,33 +383,35 @@ export function createScopedVideoCatalogRepo(
     return scopeSql(active.length === 1 ? { kind: 'library', libraryId: active[0].id } : scope)
   }
 
-  function page(scoped: ScopeSql, query: VideoQuery): ScopedVideo[] {
+  function page(scoped: ScopeSql, query: VideoQuery, externalRatingSource: string | null): ScopedVideo[] {
     const where = buildWhere(query, scoped)
     const limit = Math.max(1, Math.min(200, Math.trunc(query.limit ?? 60)))
     const offset = Math.max(0, Math.trunc(query.offset ?? 0))
+    const external = query.sortBy === 'external_rating'
+    const ratingJoin = external ? 'LEFT JOIN video_external_stats external_stats ON external_stats.video_id = v.id AND external_stats.source = ?' : ''
     // Membership ranking and fixed actor/tag joins each yield at most one row per video.
     // Materialize only the ID/member page before evaluating the wide card projection.
     const rows = database.prepare(
       `WITH page AS MATERIALIZED (
-         SELECT v.id, scope_m.preferred_library_id, scope_m.membership_added_at
-         FROM videos v ${where.joins} ${where.sql}
+         SELECT v.id, scope_m.preferred_library_id, scope_m.membership_added_at${external ? ', external_stats.rating_average AS external_rating' : ''}
+         FROM videos v ${where.joins} ${ratingJoin} ${where.sql}
          ORDER BY ${orderBy(query)} LIMIT ? OFFSET ?
        )
        SELECT v.*${listProjection()}
        FROM page scope_m JOIN videos v ON v.id = scope_m.id
-       ORDER BY ${orderBy(query)}`
-    ).all(...where.params, limit, offset) as ScopedVideoListRow[]
+       ORDER BY ${orderBy(query, 'scope_m.external_rating')}`
+    ).all(...(external ? [externalRatingSource] : []), ...where.params, limit, offset) as ScopedVideoListRow[]
     return hydrateRows(rows)
   }
 
-  function cachedPage(memo: ReadCacheMemo, scoped: ScopeSql, query: VideoQuery): ScopedVideo[] {
+  function cachedPage(memo: ReadCacheMemo, scoped: ScopeSql, query: VideoQuery, externalRatingSource: string | null): ScopedVideo[] {
     const where = buildWhere(query, scoped)
-    const key = JSON.stringify([where.joins, where.sql, where.params, orderBy(query),
+    const key = JSON.stringify([where.joins, where.sql, where.params, orderBy(query), externalRatingSource,
       Math.max(1, Math.min(200, Math.trunc(query.limit ?? 60))), Math.max(0, Math.trunc(query.offset ?? 0))])
-    return memo.get('pages', key, () => page(scoped, query))
+    return memo.get('pages', key, () => page(scoped, query, externalRatingSource))
   }
   const repo: ScopedVideoCatalogRepo = {
-    list(scope, query = {}) {
+    list(scope, query = {}, externalRatingSource = null) {
       return cache.read((memo) => {
         const scoped = resolvedScope(scope)
         const where = buildWhere(query, scoped)
@@ -421,12 +425,13 @@ export function createScopedVideoCatalogRepo(
           : database.prepare(
               `SELECT COUNT(*) AS count FROM videos v ${where.joins} ${where.sql}`
             ).get(...where.params) as { count: number })
-        return { items: cachedPage(memo, scoped, query), total: total.count, readRevision: memo.revision }
+        return { items: cachedPage(memo, scoped, query, externalRatingSource), total: total.count,
+          readRevision: query.sortBy === 'external_rating' ? JSON.stringify([memo.revision, externalRatingSource]) : memo.revision }
       })
     },
 
-    listPage(scope, query = {}) {
-      return cache.read(memo => cachedPage(memo, resolvedScope(scope), query))
+    listPage(scope, query = {}, externalRatingSource = null) {
+      return cache.read(memo => cachedPage(memo, resolvedScope(scope), query, externalRatingSource))
     },
 
     listByIds(scope, videoIds) {
@@ -527,8 +532,8 @@ export function createScopedVideoCatalogRepo(
 }
 
 export const scopedVideoCatalogRepo: ScopedVideoCatalogRepo = {
-  list: (scope, query) => createScopedVideoCatalogRepo().list(scope, query),
-  listPage: (scope, query) => createScopedVideoCatalogRepo().listPage(scope, query),
+  list: (scope, query, source) => createScopedVideoCatalogRepo().list(scope, query, source),
+  listPage: (scope, query, source) => createScopedVideoCatalogRepo().listPage(scope, query, source),
   listByIds: (scope, videoIds) => createScopedVideoCatalogRepo().listByIds(scope, videoIds),
   listByLibrarySelections: (selections) =>
     createScopedVideoCatalogRepo().listByLibrarySelections(selections),

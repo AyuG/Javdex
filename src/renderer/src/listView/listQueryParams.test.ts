@@ -73,3 +73,12 @@ describe('library resource filter URL contract', () => {
     assert.notEqual(libraryQueryHash(params, configured), libraryQueryHash(params))
   })
 })
+
+it('keeps external_rating in a copied media library URL and as its configured default', () => {
+  const query = libraryVideoQueryFromSearchParams(new URLSearchParams('sort=external_rating&dir=asc'))
+  assert.equal(query.sortBy, 'external_rating')
+  assert.equal(query.sortDir, 'asc')
+  assert.equal(libraryVideoQueryFromSearchParams(new URLSearchParams(), {
+    status: 'all', year: 'all', sortBy: 'external_rating', sortDir: 'desc'
+  }).sortBy, 'external_rating')
+})

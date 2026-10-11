@@ -1760,3 +1760,16 @@ describe('mediaLibraryRepo', () => {
     assert.equal(unchanged?.roots[0].inode, null)
   })
 })
+
+it('saves and reloads external_rating through the media library config repository', () => {
+  setupDb()
+  const created = createMediaLibrary({ name: 'External sort', roots: [], config: { defaultSortBy: 'external_rating' } })
+  assert.equal(getMediaLibraryDetail(created.id)?.config.defaultSortBy, 'external_rating')
+  updateMediaLibraryConfig({ libraryId: created.id, expectedRevision: created.config.revision,
+    patch: { defaultSortBy: 'rating' } })
+  const current = getMediaLibraryDetail(created.id)!
+  updateMediaLibraryConfig({ libraryId: created.id, expectedRevision: current.config.revision,
+    patch: { defaultSortBy: 'external_rating', defaultSortDir: 'asc' } })
+  assert.equal(getMediaLibraryDetail(created.id)?.config.defaultSortBy, 'external_rating')
+  assert.equal(getMediaLibraryDetail(created.id)?.config.defaultSortDir, 'asc')
+})

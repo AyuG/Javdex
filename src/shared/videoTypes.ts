@@ -201,7 +201,7 @@ export interface VideoQuery {
   /** OR filter; `none` matches videos with zero resource rows. */
   resourceKinds?: VideoResourceFilter[]
   pendingScrape?: VideoPendingScrapeFilter
-  sortBy?: 'add_time' | 'release_date' | 'rating' | 'code'
+  sortBy?: 'add_time' | 'release_date' | 'rating' | 'external_rating' | 'code'
   sortDir?: 'asc' | 'desc'
   limit?: number
   offset?: number

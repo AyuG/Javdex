@@ -1,4 +1,4 @@
-import type { MediaLibraryDetail } from '@shared/mediaLibraryTypes'
+import { resolveMediaLibraryDefaultScraper, type MediaLibraryDetail } from '@shared/mediaLibraryTypes'
 
 /**
  * Resolve the single-video scraper from the active library snapshot. The id check prevents a
@@ -13,5 +13,5 @@ export function resolveVideoDetailDefaultScraper(
     activeLibraryId != null && library?.id === activeLibraryId
       ? library.config.defaultVideoScraper?.trim()
       : ''
-  return libraryDefault || globalDefaultScraper.trim()
+  return resolveMediaLibraryDefaultScraper(libraryDefault, globalDefaultScraper)
 }

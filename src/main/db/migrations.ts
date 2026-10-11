@@ -24,7 +24,7 @@ import {
   VIDEO_SOURCES_SCHEMA_SQL
 } from './schema'
 
-export const CURRENT_SCHEMA_VERSION = 16
+export const CURRENT_SCHEMA_VERSION = 17
 
 type Migration = {
   version: number
@@ -1315,6 +1315,35 @@ function normalizeStoredRelatedLinks(database: Database.Database): void {
   }
 }
 
+const OLD_DEFAULT_SORT_CHECK = "CHECK(default_sort_by IN ('add_time', 'release_date', 'rating', 'code'))"
+const EXTERNAL_DEFAULT_SORT_CHECK = "CHECK(default_sort_by IN ('add_time', 'release_date', 'rating', 'external_rating', 'code'))"
+
+function migrateToV17(database: Database.Database): void {
+  const row = database.prepare(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'media_library_configs'"
+  ).get() as { sql: string }
+  // Earlier migrations may have created the current table during the same upgrade.
+  if (row.sql.includes(EXTERNAL_DEFAULT_SORT_CHECK)) return
+  if (!row.sql.includes(OLD_DEFAULT_SORT_CHECK)) {
+    throw new Error('Unrecognized media library default sort constraint; migration cancelled')
+  }
+  const replacement = row.sql.replace(OLD_DEFAULT_SORT_CHECK, EXTERNAL_DEFAULT_SORT_CHECK)
+    .replace(/^CREATE TABLE (?:IF NOT EXISTS )?["`]?media_library_configs["`]?/i,
+      'CREATE TABLE media_library_configs_v17')
+  if (replacement === row.sql || !replacement.startsWith('CREATE TABLE media_library_configs_v17')) {
+    throw new Error('Unrecognized media library config table; migration cancelled')
+  }
+  // Reuse the stored DDL so old column order, defaults and all other constraints survive.
+  const objects = database.prepare(
+    "SELECT sql FROM sqlite_master WHERE tbl_name = 'media_library_configs' AND type IN ('index', 'trigger') AND sql IS NOT NULL ORDER BY type, name"
+  ).all() as Array<{ sql: string }>
+  database.exec(replacement)
+  database.exec('INSERT INTO media_library_configs_v17 SELECT * FROM media_library_configs')
+  database.exec('DROP TABLE media_library_configs')
+  database.exec('ALTER TABLE media_library_configs_v17 RENAME TO media_library_configs')
+  for (const object of objects) database.exec(object.sql)
+}
+
 const MIGRATIONS: Migration[] = [
   {
     version: 2,
@@ -1383,7 +1412,8 @@ const MIGRATIONS: Migration[] = [
       database.exec('CREATE INDEX idx_video_tag_tag_id ON video_tag(tag_id,origin)')
       database.exec(SCAN_AUDIT_ENTRIES_SCHEMA_SQL)
     }
-  }
+  },
+  { version: 17, migrate: migrateToV17 }
 ]
 
 function migrationForVersion(version: number): Migration | undefined {
@@ -1406,6 +1436,14 @@ export function migrateDatabase(database: Database.Database): void {
       .all() as { name: string }[]
     if (additions.length === 1 && additions[0].name === 'agent_resource_cleanup') {
       throw new Error('Database uses an unreleased schema 16 snapshot. Use its matching development build or restore a pre-upgrade backup; do not change user_version manually.')
+    }
+  }
+  if (current === 17) {
+    const config = database.prepare(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'media_library_configs'"
+    ).get() as { sql: string } | undefined
+    if (!config?.sql.includes(EXTERNAL_DEFAULT_SORT_CHECK)) {
+      throw new Error('Database uses an unreleased schema 17 snapshot; use its matching application version')
     }
   }
   if (current === 0) {

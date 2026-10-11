@@ -1,3 +1,4 @@
+import { resolveExternalRatingSource } from './externalRatingSource'
 import { app } from 'electron'
 import path from 'node:path'
 import { getDatabaseReadRevision, getDb } from '../db/database'
@@ -6,6 +7,7 @@ import { createCatalogReadWorkerTransport } from './catalogReadWorkerTransport'
 
 /** Lazy startup occurs only after normal writer initialization and IPC registration. */
 export const catalogReadService = new CatalogReadWorkerClient({
+  resolveExternalRatingSource,
   contextProvider: () => {
     const connection = getDb()
     const revision = getDatabaseReadRevision(connection)
