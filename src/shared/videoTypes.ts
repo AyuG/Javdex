@@ -160,6 +160,8 @@ export interface VideoExternalStats {
   rating_average: number | null
   rating_count: number | null
   fetched_at: string | null
+  /** Detail-only link from the matching stored scraper source, when available. */
+  source_url?: string | null
 }
 
 export interface VideoSampleImportInput {
