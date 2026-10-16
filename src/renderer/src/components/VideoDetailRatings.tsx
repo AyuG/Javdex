@@ -1,5 +1,7 @@
 import type { VideoDetail, VideoExternalStats } from '@shared/videoTypes'
 import StarRating from './StarRating'
+import { externalRatingLink } from './externalRatingLink'
+import styles from './VideoDetailRatings.module.css'
 
 function formatExternalScore(value: number): string {
   const rounded = Math.round(value * 10) / 10
@@ -42,14 +44,33 @@ export default function VideoDetailRatings({ video, onRatingChange }: Props): JS
           <div className="detail-rating-group">
             <span className="detail-rating-label">外部评分</span>
             <div className="detail-external-ratings">
-              {externalRatings.map((stat) => (
-                <div key={stat.id} className="detail-external-rating" title={buildExternalRatingMeta(stat)}>
-                  <span className="detail-external-rating-score">
-                    {formatExternalScore(stat.rating_average!)}
-                  </span>
-                  <span className="detail-external-rating-meta">{buildExternalRatingMeta(stat)}</span>
-                </div>
-              ))}
+              {externalRatings.map((stat) => {
+                const url = externalRatingLink(stat.source, video.code, video.links, stat.source_url)
+                return (
+                  <div key={stat.id} className="detail-external-rating" title={buildExternalRatingMeta(stat)}>
+                    <span className="detail-external-rating-score">
+                      {formatExternalScore(stat.rating_average!)}
+                    </span>
+                    <span className="detail-external-rating-meta">
+                      {url ? (
+                        <a
+                          className={styles.platformLink}
+                          href={url}
+                          title={`在默认浏览器中打开 ${stat.source}`}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            void window.api.externalLinks.open(url)
+                          }}
+                        >
+                          {stat.source}
+                        </a>
+                      ) : stat.source}
+                      {stat.rating_count != null && stat.rating_count > 0
+                        ? ` · ${formatRatingCount(stat.rating_count)} 人` : null}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </>

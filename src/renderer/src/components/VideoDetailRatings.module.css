@@ -1,0 +1,21 @@
+.platformLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.platformLink:hover {
+  color: var(--text-primary);
+}
+
+.platformLink:active {
+  color: var(--text-secondary);
+}
+
+.platformLink:focus-visible {
+  outline: var(--focus-outline);
+  box-shadow: var(--focus-ring);
+}

@@ -1148,9 +1148,10 @@ export function getVideoDetail(
 
   const external_stats = db
     .prepare(
-      `SELECT * FROM video_external_stats
-       WHERE video_id = ?
-       ORDER BY fetched_at DESC, source ASC`
+      `SELECT stats.*, sources.url AS source_url FROM video_external_stats stats
+       LEFT JOIN video_sources sources ON sources.video_id = stats.video_id AND sources.source = stats.source
+       WHERE stats.video_id = ?
+       ORDER BY stats.fetched_at DESC, stats.source ASC`
     )
     .all(id) as StoredVideoDetail['external_stats']
 
