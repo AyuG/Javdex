@@ -1,10 +1,74 @@
+.root {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: start;
+  gap: 12px;
+}
+
+.label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.values {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  min-width: 0;
+  min-height: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.score {
+  color: var(--rating-filled);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 24px;
+}
+
+.source,
+.platformLink,
+.count {
+  font-size: 12px;
+  line-height: 24px;
+}
+
+.source {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.count {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .platformLink {
-  display: inline-flex;
-  align-items: center;
   min-height: 24px;
   color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 .platformLink:hover {
@@ -17,5 +81,6 @@
 
 .platformLink:focus-visible {
   outline: var(--focus-outline);
+  outline-offset: 2px;
   box-shadow: var(--focus-ring);
 }

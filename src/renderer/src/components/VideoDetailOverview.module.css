@@ -1,0 +1,31 @@
+.root {
+  container: video-overview / inline-size;
+  min-width: 0;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.metadata {
+  min-width: 0;
+}
+
+.actions {
+  min-width: 0;
+  margin-top: var(--form-section-gap);
+}
+
+.actions > [role='toolbar'] {
+  position: static;
+}
+
+@container video-overview (max-width: 560px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--form-section-gap);
+  }
+}

@@ -1,27 +1,56 @@
 import type { VideoDetail, VideoExternalStats } from '@shared/videoTypes'
+import { LOCAL_NFO_SOURCE_ID, LOCAL_NFO_SOURCE_NAME } from '@shared/videoMetadataSourceConstants'
 import StarRating from './StarRating'
 import { externalRatingLink } from './externalRatingLink'
 import styles from './VideoDetailRatings.module.css'
 
-function formatExternalScore(value: number): string {
+function formatScore(value: number): string {
   const rounded = Math.round(value * 10) / 10
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
 }
 
-function formatRatingCount(value: number): string {
-  return value.toLocaleString('zh-CN')
+function ratingCount(value: number | null): number | null {
+  return value != null && Number.isSafeInteger(value) && value > 0 ? value : null
 }
 
-function hasExternalRating(stat: VideoExternalStats): boolean {
-  return stat.rating_average != null && Number.isFinite(stat.rating_average)
+function compactCount(value: number): string {
+  return value >= 10_000
+    ? `${(value / 10_000).toFixed(1).replace(/\.0$/, '')}万人`
+    : `${value.toLocaleString('zh-CN')}人`
 }
 
-function buildExternalRatingMeta(stat: VideoExternalStats): string {
-  const parts: string[] = [stat.source]
-  if (stat.rating_count != null && stat.rating_count > 0) {
-    parts.push(`${formatRatingCount(stat.rating_count)} 人`)
-  }
-  return parts.join(' · ')
+function isLocalNfo(stat: VideoExternalStats): boolean {
+  return stat.source === LOCAL_NFO_SOURCE_ID || stat.source === LOCAL_NFO_SOURCE_NAME
+}
+
+function RatingValue({ stat, video }: { stat: VideoExternalStats; video: VideoDetail }): JSX.Element {
+  const local = isLocalNfo(stat)
+  const url = local ? null : externalRatingLink(stat.source, video.code, video.links, stat.source_url)
+  const count = ratingCount(stat.rating_count)
+  const exactCount = count == null ? undefined : `${count.toLocaleString('zh-CN')} 人评分`
+  return (
+    <div className={styles.value}>
+      <span className={styles.score}>{formatScore(stat.rating_average!)}</span>
+      {!local && (url ? (
+        <a
+          className={styles.platformLink}
+          href={url}
+          title={`在默认浏览器中打开 ${stat.source}`}
+          onClick={(event) => {
+            event.preventDefault()
+            void window.api.externalLinks.open(url)
+          }}
+        >
+          {stat.source}
+        </a>
+      ) : <span className={styles.source}>{stat.source}</span>)}
+      {count != null && (
+        <span className={styles.count} title={exactCount} aria-label={exactCount}>
+          · {compactCount(count)}
+        </span>
+      )}
+    </div>
+  )
 }
 
 interface Props {
@@ -30,51 +59,33 @@ interface Props {
 }
 
 export default function VideoDetailRatings({ video, onRatingChange }: Props): JSX.Element {
-  const externalRatings = video.external_stats.filter(hasExternalRating)
-
+  const ratings = video.external_stats.filter(stat => stat.rating_average != null && Number.isFinite(stat.rating_average))
+  const external = ratings.filter(stat => !isLocalNfo(stat))
+  const local = ratings.filter(isLocalNfo)
   return (
-    <div className="detail-ratings" aria-label="评分">
-      <div className="detail-rating-group">
-        <span className="detail-rating-label">自定义评分</span>
-        <StarRating value={video.rating} onChange={onRatingChange} size={22} />
+    <dl className={styles.root} aria-label="评分">
+      <div className={styles.row}>
+        <dt className={styles.label}>自定义评分</dt>
+        <dd className={styles.values}>
+          <StarRating value={video.rating} onChange={onRatingChange} size={20} />
+        </dd>
       </div>
-      {externalRatings.length > 0 && (
-        <>
-          <span className="detail-ratings-divider" aria-hidden />
-          <div className="detail-rating-group">
-            <span className="detail-rating-label">外部评分</span>
-            <div className="detail-external-ratings">
-              {externalRatings.map((stat) => {
-                const url = externalRatingLink(stat.source, video.code, video.links, stat.source_url)
-                return (
-                  <div key={stat.id} className="detail-external-rating" title={buildExternalRatingMeta(stat)}>
-                    <span className="detail-external-rating-score">
-                      {formatExternalScore(stat.rating_average!)}
-                    </span>
-                    <span className="detail-external-rating-meta">
-                      {url ? (
-                        <a
-                          className={styles.platformLink}
-                          href={url}
-                          title={`在默认浏览器中打开 ${stat.source}`}
-                          onClick={(event) => {
-                            event.preventDefault()
-                            void window.api.externalLinks.open(url)
-                          }}
-                        >
-                          {stat.source}
-                        </a>
-                      ) : stat.source}
-                      {stat.rating_count != null && stat.rating_count > 0
-                        ? ` · ${formatRatingCount(stat.rating_count)} 人` : null}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </>
+      {external.length > 0 && (
+        <div className={styles.row}>
+          <dt className={styles.label}>外部评分</dt>
+          <dd className={styles.values}>
+            {external.map(stat => <RatingValue key={stat.id} stat={stat} video={video} />)}
+          </dd>
+        </div>
       )}
-    </div>
+      {local.length > 0 && (
+        <div className={styles.row}>
+          <dt className={styles.label}>{LOCAL_NFO_SOURCE_NAME}</dt>
+          <dd className={styles.values}>
+            {local.map(stat => <RatingValue key={stat.id} stat={stat} video={video} />)}
+          </dd>
+        </div>
+      )}
+    </dl>
   )
 }

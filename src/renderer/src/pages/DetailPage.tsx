@@ -26,12 +26,11 @@ import AddToPlaylistModal from '../components/AddToPlaylistModal'
 import DetailScrollBody from '../components/DetailScrollBody'
 import MetaLink from '../components/MetaLink'
 import {
-  VideoDetailPrimaryMeta,
   VideoDetailSecondaryMeta,
   VideoMaintenanceInfo,
   getVideoScrapeStatusLabel
 } from '../components/VideoDetailMeta'
-import VideoDetailRatings from '../components/VideoDetailRatings'
+import VideoDetailOverview from '../components/VideoDetailOverview'
 import ImagePreviewLightbox from '../components/ImagePreviewLightbox'
 import { useHistoryBackedImagePreviewState } from '../components/ImagePreviewOverlayContext'
 import DetailActionBar from '../components/DetailActionBar'
@@ -986,9 +985,7 @@ export default function DetailPage(): JSX.Element {
             </div>
 
             <div className="detail-info">
-              <VideoDetailRatings video={video} onRatingChange={handleRating} />
-
-              <VideoDetailPrimaryMeta video={video} />
+              <VideoDetailOverview video={video} onRatingChange={handleRating}>
 
               <DetailActionBar
                 ariaLabel="影片操作"
@@ -1091,6 +1088,7 @@ export default function DetailPage(): JSX.Element {
                   }
                 ]}
               />
+              </VideoDetailOverview>
           </div>
         </div>
         </article>

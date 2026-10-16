@@ -73,12 +73,15 @@ function parseDetail(ctx, detailHtml, detailUrl, requestedCode) {
   const director = (metadata['導演'] || '').trim();
 
   let ratingAverage = 0;
-  let ratingCount = 0;
+  let ratingCount = null;
   if (metadata['評分']) {
     const avgMatch = metadata['評分'].match(/([\d.]+)分/);
     if (avgMatch) ratingAverage = parseFloat(avgMatch[1]);
-    const countMatch = metadata['評分'].match(/由(\d+)人評價/);
-    if (countMatch) ratingCount = parseInt(countMatch[1]);
+    const countMatch = metadata['評分'].match(/由\s*([\d,，]+)\s*人\s*[評评][價价分]/);
+    if (countMatch) {
+      const count = Number(countMatch[1].replace(/[,，]/g, ''));
+      if (Number.isSafeInteger(count) && count > 0) ratingCount = count;
+    }
   }
 
   const tags = [];

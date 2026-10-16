@@ -116,6 +116,16 @@ function parseDetail($, code, sourceUrl) {
     if (fivePointScore > 0 && fivePointScore <= 5) result.ratingAverage = fivePointScore;
   }
 
+  // Only accept an explicit rating count, never review/comment totals.
+  const structuredCount = $('#video_review [itemprop="ratingCount"]').first();
+  const countText = structuredCount.attr('content') || structuredCount.text();
+  const countMatch = $('#video_review').text().match(/([\d,，]+)\s*(?:人\s*(?:評分|评分|評價|评价)|votes?\b)/i);
+  const rawCount = countText.trim() || (countMatch ? countMatch[1] : '');
+  if (/^\d[\d,，]*$/.test(rawCount)) {
+    const count = Number(rawCount.replace(/[,，]/g, ''));
+    if (Number.isSafeInteger(count) && count > 0) result.ratingCount = count;
+  }
+
   $('.previewthumbs a').each((i, element) => {
     const href = $(element).attr('href');
     if (href) result.sampleImageUrls.push(href);
