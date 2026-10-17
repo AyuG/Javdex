@@ -64,7 +64,7 @@
 .tag-chip-cloud-item--selected {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent-hover);
+  color: var(--text-accent);
 }
 .tag-chip-cloud-item:focus-visible {
   outline: 2px solid var(--accent);
@@ -82,7 +82,7 @@
   color: var(--text-2);
 }
 .tag-chip-cloud-item--selected .tag-chip-cloud-count {
-  color: var(--accent-hover);
+  color: var(--text-accent);
   opacity: 0.85;
 }
 .tag-picker-list {
@@ -114,7 +114,7 @@
 .tag-chip.selected {
   background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent-hover);
+  color: var(--text-accent);
   cursor: pointer;
 }
 .tag-popover {

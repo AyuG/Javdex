@@ -216,6 +216,22 @@ describe('typed IPC adapter', () => {
     assert.equal(schema.safeParse([{ pluginDevAgentMaxSteps: 24 }]).success, false)
   })
 
+  it('validates complete appearance preferences without accepting arbitrary CSS', () => {
+    const schema = appIpcSchemas[IPC.SETTINGS_UPDATE]
+    const appearance = { mode: 'system', palette: 'forest', customAccentEnabled: true, customAccentColor: '#AABBCC' }
+    assert.equal(schema.safeParse([{ appearance }]).success, true)
+    for (const palette of ['ocean', 'amber']) {
+      assert.equal(schema.safeParse([{ appearance: { ...appearance, palette } }]).success, true)
+    }
+    for (const patch of [
+      { mode: 'invalid' }, { palette: 'invalid' }, { customAccentEnabled: 'yes' },
+      { customAccentColor: '#abc' }, { customAccentColor: 'red; display:none' }, { arbitraryCss: 'body{}' }
+    ]) {
+      assert.equal(schema.safeParse([{ appearance: { ...appearance, ...patch } }]).success, false)
+    }
+    assert.equal(schema.safeParse([{ appearance: { mode: 'light' } }]).success, false)
+  })
+
   it('validates playlist import start and identity controls at the IPC boundary', () => {
     const legacyStart = appIpcSchemas[IPC.PLAYLIST_IMPORT_START].safeParse([{
       idempotencyKey: 'start-1',

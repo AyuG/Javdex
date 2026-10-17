@@ -222,7 +222,7 @@
 }
 .mode-toggle button.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 .mode-toggle button.active + button {
   border-left-color: color-mix(in srgb, var(--accent) 55%, var(--border));
@@ -332,7 +332,7 @@
 .poster-select-toggle.is-checked {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 .poster-select-toggle.is-checked::after {
   content: "✓";
@@ -422,7 +422,7 @@
 }
 .poster-code {
   font-size: 11px;
-  color: var(--accent-hover);
+  color: var(--text-accent);
   font-weight: 700;
   margin-bottom: 2px;
 }
