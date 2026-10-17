@@ -31,6 +31,7 @@ import {
   getVideoScrapeStatusLabel
 } from '../components/VideoDetailMeta'
 import VideoDetailOverview from '../components/VideoDetailOverview'
+import overviewStyles from '../components/VideoDetailOverview.module.css'
 import ImagePreviewLightbox from '../components/ImagePreviewLightbox'
 import { useHistoryBackedImagePreviewState } from '../components/ImagePreviewOverlayContext'
 import DetailActionBar from '../components/DetailActionBar'
@@ -956,9 +957,9 @@ export default function DetailPage(): JSX.Element {
             ) : null}
           </div>
 
-          <div className="detail-hero-body">
+          <div className={`detail-hero-body ${overviewStyles.hero}`}>
             <div
-              className={`detail-cover landscape${
+              className={`detail-cover landscape ${overviewStyles.cover}${
                 cover && coverPreviewEnabled ? ' detail-cover--preview' : ''
               }`}
               role={cover && coverPreviewEnabled ? 'button' : undefined}
@@ -984,7 +985,7 @@ export default function DetailPage(): JSX.Element {
               )}
             </div>
 
-            <div className="detail-info">
+            <div className={`detail-info ${overviewStyles.info}`}>
               <VideoDetailOverview video={video} onRatingChange={handleRating}>
 
               <DetailActionBar
