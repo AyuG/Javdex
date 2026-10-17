@@ -26,12 +26,12 @@ import AddToPlaylistModal from '../components/AddToPlaylistModal'
 import DetailScrollBody from '../components/DetailScrollBody'
 import MetaLink from '../components/MetaLink'
 import {
-  VideoDetailPrimaryMeta,
   VideoDetailSecondaryMeta,
   VideoMaintenanceInfo,
   getVideoScrapeStatusLabel
 } from '../components/VideoDetailMeta'
-import VideoDetailRatings from '../components/VideoDetailRatings'
+import VideoDetailOverview from '../components/VideoDetailOverview'
+import overviewStyles from '../components/VideoDetailOverview.module.css'
 import ImagePreviewLightbox from '../components/ImagePreviewLightbox'
 import { useHistoryBackedImagePreviewState } from '../components/ImagePreviewOverlayContext'
 import DetailActionBar from '../components/DetailActionBar'
@@ -957,9 +957,9 @@ export default function DetailPage(): JSX.Element {
             ) : null}
           </div>
 
-          <div className="detail-hero-body">
+          <div className={`detail-hero-body ${overviewStyles.hero}`}>
             <div
-              className={`detail-cover landscape${
+              className={`detail-cover landscape ${overviewStyles.cover}${
                 cover && coverPreviewEnabled ? ' detail-cover--preview' : ''
               }`}
               role={cover && coverPreviewEnabled ? 'button' : undefined}
@@ -985,10 +985,8 @@ export default function DetailPage(): JSX.Element {
               )}
             </div>
 
-            <div className="detail-info">
-              <VideoDetailRatings video={video} onRatingChange={handleRating} />
-
-              <VideoDetailPrimaryMeta video={video} />
+            <div className={`detail-info ${overviewStyles.info}`}>
+              <VideoDetailOverview video={video} onRatingChange={handleRating}>
 
               <DetailActionBar
                 ariaLabel="影片操作"
@@ -1091,6 +1089,7 @@ export default function DetailPage(): JSX.Element {
                   }
                 ]}
               />
+              </VideoDetailOverview>
           </div>
         </div>
         </article>
