@@ -3,12 +3,52 @@ import type { AppearanceSettings, ThemePalette } from '@shared/appearance'
 
 export const PALETTE_OPTIONS: { id: ThemePalette; label: string; hint: string; accent: string; lightAccent: string }[] = [
   { id: 'graphite', label: '石墨', hint: '中性灰 · 经典蓝', accent: '#5a8fc8', lightAccent: '#3f6fb5' },
-  { id: 'warm', label: '暖灰', hint: '温润灰 · 柔和金', accent: '#a9966a', lightAccent: '#806a38' },
-  { id: 'slate', label: '青灰', hint: '冷调灰 · 雾青色', accent: '#63a7ad', lightAccent: '#30787e' },
-  { id: 'forest', label: '苔绿', hint: '柔和灰 · 鼠尾草', accent: '#80ab8e', lightAccent: '#437755' },
-  { id: 'rose', label: '烟玫', hint: '柔雾灰 · 玫瑰色', accent: '#c18d9e', lightAccent: '#9b526c' },
-  { id: 'violet', label: '暮紫', hint: '冷雾灰 · 鸢尾紫', accent: '#a195c9', lightAccent: '#7660a7' }
+  { id: 'warm', label: '暖灰', hint: '暖砂底色 · 柔金', accent: '#d3b67c', lightAccent: '#8b632b' },
+  { id: 'slate', label: '青灰', hint: '雾青底色 · 青玉', accent: '#72c8bf', lightAccent: '#187c78' },
+  { id: 'forest', label: '苔绿', hint: '松林底色 · 嫩绿', accent: '#9dc782', lightAccent: '#4c752c' },
+  { id: 'rose', label: '烟玫', hint: '蔷薇底色 · 玫红', accent: '#e6a0b8', lightAccent: '#ac4d70' },
+  { id: 'violet', label: '暮紫', hint: '鸢尾底色 · 薰紫', accent: '#bba6f0', lightAccent: '#7855b3' },
+  { id: 'ocean', label: '深海', hint: '海蓝底色 · 天蓝', accent: '#7fb8ee', lightAccent: '#226fa8' },
+  { id: 'amber', label: '琥珀', hint: '琥珀底色 · 暖橙', accent: '#edb46b', lightAccent: '#a0641c' }
 ]
+
+// Each mode has a complete scale: base, panel, raised, active, border,
+// primary text, secondary text, muted text. Accent overrides never replace it.
+type PaletteScale = readonly [string, string, string, string, string, string, string, string]
+const PALETTE_SCALES: Record<ThemePalette, { dark: PaletteScale; light: PaletteScale }> = {
+  graphite: {
+    dark: ['#101113', '#17191c', '#202329', '#2b3038', '#363c46', '#f0f2f5', '#abb3bf', '#929dac'],
+    light: ['#f3f4f6', '#ffffff', '#f7f8fa', '#e6e9ee', '#d8dde5', '#1c232b', '#536071', '#697586']
+  },
+  warm: {
+    dark: ['#252019', '#302a22', '#3c342a', '#4a4033', '#665746', '#f7efdf', '#d0bfa6', '#b8a58b'],
+    light: ['#eee4d2', '#faf3e5', '#f3e9d8', '#e4d6bc', '#c6b79a', '#342a1c', '#665337', '#7b684c']
+  },
+  slate: {
+    dark: ['#12282a', '#1a3436', '#244246', '#2e5256', '#3f696c', '#e5f4f2', '#b0cec9', '#8ab3ae'],
+    light: ['#dcecea', '#f1f9f7', '#e5f2ef', '#cbe2dc', '#9ebfb6', '#163934', '#42695e', '#567b70']
+  },
+  forest: {
+    dark: ['#192b1c', '#22362a', '#2c4535', '#385741', '#506e59', '#edf5e8', '#bbceb5', '#9ab392'],
+    light: ['#e2ecd9', '#f4f8ed', '#e9f1df', '#d4e2c6', '#afc19d', '#2b3c24', '#526748', '#667c59']
+  },
+  rose: {
+    dark: ['#301c27', '#392631', '#4b323f', '#5b3e4e', '#795164', '#f9ebf0', '#dcbcc9', '#c49aaa'],
+    light: ['#f1e0e7', '#fff4f7', '#f7e8ee', '#eccfda', '#d3a9ba', '#472b37', '#805366', '#936579']
+  },
+  violet: {
+    dark: ['#211d31', '#2e2841', '#3d3555', '#4c4368', '#665b89', '#f1edfc', '#c9bfdc', '#aca0c7'],
+    light: ['#e9e2f4', '#faf6ff', '#f0e9fa', '#e0d3ee', '#bfaed5', '#382c4d', '#695781', '#7b6892']
+  },
+  ocean: {
+    dark: ['#10223d', '#18314a', '#223f5c', '#2c4e70', '#42678b', '#e9f2ff', '#b6cce5', '#93b0d1'],
+    light: ['#d4e5f7', '#f2f8ff', '#e4effa', '#cadff0', '#9fbad0', '#203b51', '#4a6983', '#5d7c95']
+  },
+  amber: {
+    dark: ['#3b2418', '#4a3020', '#5c3e29', '#704d31', '#947049', '#fff0df', '#dfc5a4', '#c5a982'],
+    light: ['#f0d8bd', '#fff7ec', '#faecd9', '#eed8b9', '#d5b78d', '#4b341b', '#815c32', '#916c43']
+  }
+}
 
 export function resolveTheme(appearance: AppearanceSettings, systemDark: boolean): ThemeId {
   if (appearance.mode === 'light' || (appearance.mode === 'system' && !systemDark)) return 'light'
@@ -37,12 +77,17 @@ export function contrastRatio(a: string, b: string): number {
   return (values[0] + 0.05) / (values[1] + 0.05)
 }
 
+function readableText(color: string, background: string, dark: boolean): string {
+  let result = color
+  for (let step = 1; contrastRatio(result, background) < 4.5 && step <= 20; step++) {
+    result = mix(color, dark ? '#ffffff' : '#101113', step / 20)
+  }
+  return result
+}
+
 export function accentTokens(color: string, panel: string, dark: boolean): Record<string, string> {
   const foreground = contrastRatio(color, '#ffffff') >= contrastRatio(color, '#000000') ? '#ffffff' : '#000000'
-  let textAccent = color
-  for (let step = 1; contrastRatio(textAccent, panel) < 4.5 && step <= 20; step++) {
-    textAccent = mix(color, dark ? '#ffffff' : '#101113', step / 20)
-  }
+  const textAccent = readableText(color, panel, dark)
   return {
     '--accent': color,
     '--accent-hover': mix(color, foreground === '#ffffff' ? '#101113' : '#ffffff', 0.12),
@@ -53,16 +98,23 @@ export function accentTokens(color: string, panel: string, dark: boolean): Recor
   }
 }
 
-/** Neutral surfaces remain the main area of every palette. */
+/** Apply every surface and text role in both modes, including with a fixed custom accent. */
 export function paletteTokens(palette: ThemePalette, dark: boolean): Record<string, string> {
   const option = PALETTE_OPTIONS.find((item) => item.id === palette)!
-  if (dark && palette === 'warm') return { '--bg-0': '#121110', '--bg-1': '#1a1816', '--bg-2': '#24211e', '--accent': option.accent }
-  if (dark && palette === 'slate') return { '--bg-0': '#0f1216', '--bg-1': '#151a20', '--bg-2': '#1e252d', '--accent': option.accent }
-  const tint = palette === 'graphite' ? 0 : 0.04
+  const [base, panel, raised, active, border, primary, secondary, muted] = PALETTE_SCALES[palette][dark ? 'dark' : 'light']
   return {
-    '--bg-0': mix(dark ? '#101113' : '#f3f4f6', option.accent, tint),
-    '--bg-1': mix(dark ? '#17191c' : '#ffffff', option.accent, tint),
-    '--bg-2': mix(dark ? '#202329' : '#f7f8fa', option.accent, tint),
+    '--bg-0': base,
+    '--bg-1': panel,
+    '--bg-2': raised,
+    '--bg-3': active,
+    '--border': border,
+    '--text-0': readableText(primary, active, dark),
+    '--text-1': readableText(secondary, active, dark),
+    '--text-2': readableText(muted, active, dark),
+    '--surface-hover': active,
+    '--thumb-gradient-start': raised,
+    '--thumb-gradient-end': panel,
+    '--scrollbar-thumb-hover': border,
     '--accent': dark ? option.accent : option.lightAccent
   }
 }
@@ -76,7 +128,7 @@ export function applyAppearance(appearance: AppearanceSettings, systemDark: bool
   root.style.colorScheme = dark ? 'dark' : 'light'
   const colors = paletteTokens(appearance.palette, dark)
   const accent = appearance.customAccentEnabled ? appearance.customAccentColor : colors['--accent']
-  for (const [key, value] of Object.entries({ ...colors, ...accentTokens(accent, colors['--bg-1'], dark) })) {
+  for (const [key, value] of Object.entries({ ...colors, ...accentTokens(accent, colors['--bg-3'], dark) })) {
     root.style.setProperty(key, value)
   }
 }

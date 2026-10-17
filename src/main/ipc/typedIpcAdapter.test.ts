@@ -220,6 +220,9 @@ describe('typed IPC adapter', () => {
     const schema = appIpcSchemas[IPC.SETTINGS_UPDATE]
     const appearance = { mode: 'system', palette: 'forest', customAccentEnabled: true, customAccentColor: '#AABBCC' }
     assert.equal(schema.safeParse([{ appearance }]).success, true)
+    for (const palette of ['ocean', 'amber']) {
+      assert.equal(schema.safeParse([{ appearance: { ...appearance, palette } }]).success, true)
+    }
     for (const patch of [
       { mode: 'invalid' }, { palette: 'invalid' }, { customAccentEnabled: 'yes' },
       { customAccentColor: '#abc' }, { customAccentColor: 'red; display:none' }, { arbitraryCss: 'body{}' }

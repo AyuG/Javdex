@@ -1,5 +1,5 @@
 export const THEME_MODES = ['system', 'light', 'dark'] as const
-export const THEME_PALETTES = ['graphite', 'warm', 'slate', 'forest', 'rose', 'violet'] as const
+export const THEME_PALETTES = ['graphite', 'warm', 'slate', 'forest', 'rose', 'violet', 'ocean', 'amber'] as const
 export type ThemeMode = (typeof THEME_MODES)[number]
 export type ThemePalette = (typeof THEME_PALETTES)[number]
 

@@ -96,7 +96,8 @@ export default function ThemeSettingsCard(): JSX.Element {
                 onClick={() => void change({ palette: option.id })}>
                 <span className={styles.preview} aria-hidden style={{
                   '--preview-base': colors['--bg-0'], '--preview-panel': colors['--bg-1'],
-                  '--preview-raised': colors['--bg-2'], '--preview-accent': colors['--accent']
+                  '--preview-raised': colors['--bg-3'],
+                  '--preview-accent': appearance.customAccentEnabled ? appearance.customAccentColor : colors['--accent']
                 } as CSSProperties}>
                   <span className={styles.previewSidebar}><i /><i /><i /></span>
                   <span className={styles.previewContent}><i /><span><i /><i /><i /></span></span>
@@ -110,6 +111,11 @@ export default function ThemeSettingsCard(): JSX.Element {
           })}
         </div>
       </AppFormChoiceGroup>
+      <p className={styles.paletteNote}>
+        {appearance.customAccentEnabled
+          ? '自定义强调色已开启：切换配色会更改背景、面板和文字，强调色保持不变。'
+          : '每套配色均有独立的深色和浅色外观，同时更改背景、面板、文字和强调色。'}
+      </p>
       <div className={styles.accentSection}>
         <SettingsSwitchRow title="自定义强调色" description="替换按钮、选中项和链接的强调色，保留当前配色的背景。"
           checked={appearance.customAccentEnabled} onChange={(checked) => void change({ customAccentEnabled: checked })} />

@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import React from 'react'
 import TestRenderer, { act } from 'react-test-renderer'
 import { DEFAULT_SETTINGS } from '@shared/settingsTypes'
-import { DEFAULT_APPEARANCE, type AppearanceSettings } from '@shared/appearance'
+import { DEFAULT_APPEARANCE, THEME_PALETTES, type AppearanceSettings } from '@shared/appearance'
+import { paletteTokens } from '../theme'
 
 Object.defineProperty(globalThis, 'React', { configurable: true, value: React })
 let read = async (): Promise<unknown> => DEFAULT_SETTINGS
@@ -49,6 +50,25 @@ afterEach(() => {
 })
 
 describe('ThemeProvider', () => {
+  it('switches every palette surface in light and dark modes while retaining a custom accent', async () => {
+    await mount()
+    for (const mode of ['light', 'dark'] as const) {
+      const backgrounds = new Set<string>()
+      for (const palette of THEME_PALETTES) {
+        await act(async () => { await change({ mode, palette, customAccentEnabled: true, customAccentColor: '#5a8fc8' }) })
+        const expected = paletteTokens(palette, mode === 'dark')
+        for (const property of Object.keys(expected).filter((key) => key !== '--accent')) {
+          assert.equal(css.get(property), expected[property], `${mode} ${palette} ${property}`)
+        }
+        assert.equal(css.get('--accent'), '#5a8fc8')
+        assert.equal(root.dataset.palette, palette)
+        assert.equal(root.dataset.theme === 'light', mode === 'light')
+        backgrounds.add(css.get('--bg-1')!)
+      }
+      assert.equal(backgrounds.size, THEME_PALETTES.length)
+    }
+  })
+
   it('reacts to system changes and removes the subscription on unmount', async () => {
     const writes: unknown[] = []
     write = async (patch) => { writes.push(patch); return {} }
