@@ -54,8 +54,7 @@ import {
   type SettingsGroup,
   type SettingsTab
 } from '../settings/settingsRoutes'
-import { THEME_OPTIONS } from '../theme'
-import type { ThemeId } from '@shared/settingsTypes'
+import { PALETTE_OPTIONS } from '../theme'
 import type { UpdateCheckState } from '@shared/updateTypes'
 import Button from '../components/Button'
 import MediaLibraryCreateModal from '../components/MediaLibraryCreateModal'
@@ -93,7 +92,7 @@ export default function SettingsPage(): JSX.Element {
   const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
-  const { theme, setTheme, syncPrivacyMode } = useTheme()
+  const { theme, appearance, syncPrivacyMode } = useTheme()
   const { group: activeGroup, tab: activeTab } = resolveSettingsRoute(location.pathname)
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
   const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null)
@@ -384,15 +383,6 @@ export default function SettingsPage(): JSX.Element {
     return (
       <EmptyState loading title={<span className="settings-loading-label">加载设置…</span>} />
     )
-  }
-
-  const changeTheme = async (id: ThemeId): Promise<void> => {
-    try {
-      await setTheme(id)
-      setSettings((s) => (s ? { ...s, theme: id } : s))
-    } catch (error) {
-      toast.show(`主题未保存：${(error as Error).message}`, 'error')
-    }
   }
 
   const patchAppearanceSettings = async (
@@ -775,7 +765,7 @@ export default function SettingsPage(): JSX.Element {
                 <SettingsOverviewPanel
                   settings={settings}
                   theme={theme}
-                  themeLabel={THEME_OPTIONS.find((item) => item.id === theme)?.label ?? theme}
+                  themeLabel={`${PALETTE_OPTIONS.find((item) => item.id === appearance.palette)?.label ?? appearance.palette} · ${theme === 'light' ? '浅色' : '深色'}`}
                   notices={overviewNotices}
                   videoPluginCount={videoPluginDetails.length}
                   actressPluginCount={actressPluginDetails.length}
@@ -877,8 +867,6 @@ export default function SettingsPage(): JSX.Element {
               {activeGroup.id === 'appearance' && activeTab === 'theme' && (
                 <AppearanceSettingsPanel
                   settings={settings}
-                  theme={theme}
-                  onThemeChange={changeTheme}
                   onPatchSettings={patchAppearanceSettings}
                   onOpenAvatarBatchDetails={() => setBatchDetailScope('avatar')}
                   scrapeBatchActive={scrapeBatchActive}

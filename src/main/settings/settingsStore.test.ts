@@ -59,6 +59,33 @@ function createTestCipher(options?: { failEncryption?: boolean }): LlmSecretCiph
   }
 }
 
+describe('settingsStore appearance preferences', () => {
+  it('migrates the old light and warm themes without changing their selection', () => {
+    writeSettings({ theme: 'light' })
+    assert.equal(getSettings().appearance.mode, 'light')
+    assert.equal(getSettings().appearance.palette, 'graphite')
+    writeSettings({ theme: 'warm' })
+    assert.equal(getSettings().appearance.mode, 'dark')
+    assert.equal(getSettings().appearance.palette, 'warm')
+  })
+
+  it('persists independent preferences across restart and unrelated setting changes', () => {
+    const appearance = { mode: 'system', palette: 'rose', customAccentEnabled: true, customAccentColor: '#aabbcc' } as const
+    updateSettings({ appearance })
+    updateSettings({ showVideoResourceTypeBadges: true })
+    resetSettingsCacheForTests()
+    assert.deepEqual(getSettings().appearance, appearance)
+  })
+
+  it('normalizes corrupt appearance values and still supports legacy theme updates', () => {
+    writeSettings({ theme: 'slate', appearance: { mode: 'bad', palette: 'bad', customAccentColor: '#12', customAccentEnabled: 'yes' } })
+    assert.deepEqual(getSettings().appearance, { mode: 'dark', palette: 'slate', customAccentColor: '#5a8fc8', customAccentEnabled: false })
+    updateSettings({ theme: 'light' })
+    resetSettingsCacheForTests()
+    assert.equal(getSettings().appearance.mode, 'light')
+  })
+})
+
 describe('settingsStore avatar composition defaults', () => {
   it('uses the relaxed face-centered composition for settings without legacy values', () => {
     writeSettings({})

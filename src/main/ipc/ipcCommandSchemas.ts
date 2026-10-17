@@ -194,6 +194,12 @@ const settingsPatch = z
     batchDelayMinMs: finiteNumber.nonnegative().optional(),
     batchDelayMaxMs: finiteNumber.nonnegative().optional(),
     theme: z.enum(['graphite', 'warm', 'slate', 'light']).optional(),
+    appearance: z.object({
+      mode: z.enum(['system', 'light', 'dark']),
+      palette: z.enum(['graphite', 'warm', 'slate', 'forest', 'rose', 'violet']),
+      customAccentEnabled: z.boolean(),
+      customAccentColor: z.string().regex(/^#[\da-f]{6}$/i)
+    }).strict().optional(),
     privacyModeEnabled: z.boolean().optional(),
     privacyModeScopes: z.array(z.enum([
       'covers',

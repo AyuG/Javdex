@@ -3,18 +3,21 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode
 } from 'react'
 import { PRIVACY_MODE_SCOPES, type ThemeId } from '@shared/settingsTypes'
+import { DEFAULT_APPEARANCE, normalizeAppearance, type AppearanceSettings } from '@shared/appearance'
 import { api } from '../api'
 import { applyPrivacyMode, readCachedPrivacyMode, type PrivacyModeSettings } from '../privacyMode'
-import { applyTheme, normalizeTheme } from '../theme'
+import { applyAppearance, resolveTheme } from '../theme'
 
 interface ThemeCtx {
   theme: ThemeId
-  setTheme: (theme: ThemeId) => Promise<void>
+  appearance: AppearanceSettings
+  setAppearance: (patch: Partial<AppearanceSettings>) => Promise<void>
   privacyMode: PrivacyModeSettings
   syncPrivacyMode: (settings: PrivacyModeSettings) => void
 }
@@ -26,7 +29,8 @@ const DEFAULT_PRIVACY_MODE: PrivacyModeSettings = {
 
 const Ctx = createContext<ThemeCtx>({
   theme: 'graphite',
-  setTheme: async () => {},
+  appearance: DEFAULT_APPEARANCE,
+  setAppearance: async () => {},
   privacyMode: DEFAULT_PRIVACY_MODE,
   syncPrivacyMode: () => {}
 })
@@ -36,14 +40,30 @@ export function useTheme(): ThemeCtx {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }): JSX.Element {
-  const [theme, setThemeState] = useState<ThemeId>('graphite')
+  const [appearance, setAppearanceState] = useState<AppearanceSettings>(DEFAULT_APPEARANCE)
+  const appearanceRef = useRef(appearance)
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true)
+  const theme = resolveTheme(appearance, systemDark)
   const [privacyMode, setPrivacyModeState] = useState<PrivacyModeSettings>(
     () => readCachedPrivacyMode() ?? DEFAULT_PRIVACY_MODE
   )
   const privacyRevisionRef = useRef(0)
   const themeRevisionRef = useRef(0)
-  const savedThemeRef = useRef<ThemeId>('graphite')
+  const savedThemeRef = useRef<AppearanceSettings>(DEFAULT_APPEARANCE)
   const themeQueueRef = useRef(Promise.resolve())
+
+  useLayoutEffect(() => {
+    applyAppearance(appearance, systemDark)
+  }, [appearance, systemDark])
+
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)')
+    if (!media) return
+    const changed = (): void => setSystemDark(media.matches)
+    changed()
+    media.addEventListener('change', changed)
+    return () => media.removeEventListener('change', changed)
+  }, [])
 
   useEffect(() => {
     const privacyRevision = privacyRevisionRef.current
@@ -51,11 +71,11 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
     themeQueueRef.current = api.settings
       .get()
       .then((s) => {
-        const t = normalizeTheme(s.theme)
+        const t = normalizeAppearance(s.appearance, s.theme)
         savedThemeRef.current = t
         if (themeRevision === themeRevisionRef.current) {
-          applyTheme(t)
-          setThemeState(t)
+          appearanceRef.current = t
+          setAppearanceState(t)
         }
         if (privacyRevision === privacyRevisionRef.current) {
           applyPrivacyMode(s)
@@ -63,24 +83,32 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
         }
       })
       .catch(() => {
-        if (themeRevision === themeRevisionRef.current) applyTheme('graphite')
+        // The default appearance is already applied; privacy has its own cache.
       })
   }, [])
 
-  const setTheme = useCallback(async (next: ThemeId) => {
+  const setAppearance = useCallback(async (patch: Partial<AppearanceSettings>) => {
+    const next = normalizeAppearance({ ...appearanceRef.current, ...patch })
     const revision = ++themeRevisionRef.current
-    applyTheme(next)
-    setThemeState(next)
+    appearanceRef.current = next
+    setAppearanceState(next)
     const operation = themeQueueRef.current
       .catch(() => {})
       .then(async () => {
         try {
-          await api.settings.update({ theme: next })
-          savedThemeRef.current = next
+          // Merge after initial loading and preceding writes, so a quick click cannot
+          // overwrite preferences that have not finished loading yet.
+          const persisted = normalizeAppearance({ ...savedThemeRef.current, ...patch })
+          await api.settings.update({ appearance: persisted })
+          savedThemeRef.current = persisted
+          if (revision === themeRevisionRef.current) {
+            appearanceRef.current = persisted
+            setAppearanceState(persisted)
+          }
         } catch (error) {
           if (revision === themeRevisionRef.current) {
-            applyTheme(savedThemeRef.current)
-            setThemeState(savedThemeRef.current)
+            appearanceRef.current = savedThemeRef.current
+            setAppearanceState(savedThemeRef.current)
           }
           throw error
         }
@@ -96,7 +124,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   }, [])
 
   return (
-    <Ctx.Provider value={{ theme, setTheme, privacyMode, syncPrivacyMode }}>
+    <Ctx.Provider value={{ theme, appearance, setAppearance, privacyMode, syncPrivacyMode }}>
       {children}
     </Ctx.Provider>
   )

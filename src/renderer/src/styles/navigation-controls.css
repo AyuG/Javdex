@@ -428,7 +428,7 @@ textarea.text-input {
 .list-filter-btn--open {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent-hover);
+  color: var(--text-accent);
 }
 
 .library-filter-btn-label,
@@ -451,7 +451,7 @@ textarea.text-input {
 .list-filter-btn--open .list-filter-chevron,
 .list-filter-chevron.is-open {
   transform: rotate(180deg);
-  color: var(--accent-hover);
+  color: var(--text-accent);
 }
 
 .sort-switch {
