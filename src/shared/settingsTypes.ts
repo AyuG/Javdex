@@ -2,6 +2,7 @@ import { DEFAULT_AVATAR_FACE_RATIO, DEFAULT_AVATAR_FACE_SCALE_PRESET, type Avata
 import { DEFAULT_AVATAR_CENTERING_MODE, type AvatarCenteringMode } from './avatarCentering'
 import type { CompositeScraperDefinition, ScraperPluginDelaySettings } from './scraperPluginTypes'
 import type { LibraryScanSummary } from './libraryTypes'
+import { DEFAULT_APPEARANCE, type AppearanceSettings } from './appearance'
 import {
   DEFAULT_SCRAPER_SERVICE_CONFIGS,
   type ScraperServiceConfigs
@@ -97,8 +98,10 @@ export interface AppSettings {
   /** Min/max delay (ms) between batch scrape tasks to avoid anti-crawling. */
   batchDelayMinMs: number
   batchDelayMaxMs: number
-  /** Interface color theme. */
+  /** Legacy theme retained for migration; appearance controls the current UI. */
   theme: ThemeId
+  /** Independent brightness, palette and optional accent preferences. */
+  appearance: AppearanceSettings
   /** Apply display-only anti-peep protection to selected UI surfaces and interactions. */
   privacyModeEnabled: boolean
   /** UI surfaces and interactions protected while anti-peep mode is enabled. */
@@ -264,6 +267,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   batchDelayMinMs: 3000,
   batchDelayMaxMs: 5000,
   theme: 'graphite',
+  appearance: { ...DEFAULT_APPEARANCE },
   privacyModeEnabled: false,
   privacyModeScopes: [...PRIVACY_MODE_SCOPES],
   avatarFaceRatio: DEFAULT_AVATAR_FACE_RATIO,

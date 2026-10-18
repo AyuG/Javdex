@@ -5,8 +5,7 @@ import {
   PRIVACY_MODE_SCOPES,
   type CoverDisplayMode,
   type PrivacyModeScope,
-  type SettingsSnapshot,
-  type ThemeId
+  type SettingsSnapshot
 } from '@shared/settingsTypes'
 import {
   MAX_AVATAR_FACE_RATIO,
@@ -15,7 +14,7 @@ import {
 } from '@shared/avatarFaceScale'
 import type { AvatarCenteringMode } from '@shared/avatarCentering'
 import type { PrivacyModeSettings } from '../../privacyMode'
-import { THEME_OPTIONS } from '../../theme'
+import ThemeSettingsCard from './ThemeSettingsCard'
 import avatarCompositionLonghairUrl from '../../assets/avatar-composition-longhair.png'
 import { createAvatarAnalysisBitmap } from '../../avatarAutoCrop/image'
 import {
@@ -266,15 +265,11 @@ function AvatarCompositionPreview({
 
 export default function AppearanceSettingsPanel({
   settings,
-  theme,
-  onThemeChange,
   onPatchSettings,
   onOpenAvatarBatchDetails,
   scrapeBatchActive
 }: {
   settings: SettingsSnapshot
-  theme: ThemeId
-  onThemeChange: (theme: ThemeId) => void
   onPatchSettings: (patch: AppearanceSettingsPatch) => boolean | void | Promise<boolean | void>
   onOpenAvatarBatchDetails: () => void
   scrapeBatchActive: boolean
@@ -439,35 +434,7 @@ export default function AppearanceSettingsPanel({
 
   return (
     <>
-      <SettingsCard title="主题" hint="界面配色，立即生效。">
-        <div className="theme-grid" role="radiogroup" aria-label="界面主题">
-          {THEME_OPTIONS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={`theme-option theme-option--${option.id}${theme === option.id ? ' active' : ''}`}
-              role="radio"
-              aria-checked={theme === option.id}
-              tabIndex={theme === option.id ? 0 : -1}
-              onKeyDown={(event) => {
-                const direction = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : ['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 0
-                if (!direction) return
-                event.preventDefault()
-                const index = THEME_OPTIONS.findIndex((item) => item.id === option.id)
-                const next = (index + direction + THEME_OPTIONS.length) % THEME_OPTIONS.length
-                onThemeChange(THEME_OPTIONS[next].id)
-                const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button')
-                buttons?.[next]?.focus()
-              }}
-              onClick={() => onThemeChange(option.id)}
-            >
-              <span className={`theme-swatch theme-swatch-${option.id}`} />
-              <span className="theme-option-label">{option.label}</span>
-              <span className="theme-option-hint">{option.hint}</span>
-            </button>
-          ))}
-        </div>
-      </SettingsCard>
+      <ThemeSettingsCard />
 
       <SettingsCard title="影片卡片" hint="控制媒体库及其它影片列表中的辅助信息。">
         <div className="settings-toggle-list">

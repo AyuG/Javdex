@@ -1,6 +1,7 @@
 import { SCAN_AUDIT_SECTIONS, SCAN_AUDIT_OUTCOMES } from '@shared/scanAuditReadTypes'
 import { z } from 'zod'
 import { IPC } from '@shared/ipc-channels'
+import { THEME_PALETTES } from '@shared/appearance'
 import type { ActressIpcContract } from '@shared/actressIpcContract'
 import { ALL_ACTRESS_SCRAPE_FIELDS } from '@shared/actressScrapeTypes'
 import type { AppIpcContract } from '@shared/appIpcContract'
@@ -194,6 +195,12 @@ const settingsPatch = z
     batchDelayMinMs: finiteNumber.nonnegative().optional(),
     batchDelayMaxMs: finiteNumber.nonnegative().optional(),
     theme: z.enum(['graphite', 'warm', 'slate', 'light']).optional(),
+    appearance: z.object({
+      mode: z.enum(['system', 'light', 'dark']),
+      palette: z.enum(THEME_PALETTES),
+      customAccentEnabled: z.boolean(),
+      customAccentColor: z.string().regex(/^#[\da-f]{6}$/i)
+    }).strict().optional(),
     privacyModeEnabled: z.boolean().optional(),
     privacyModeScopes: z.array(z.enum([
       'covers',

@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { normalizeAppearance } from '@shared/appearance'
 import path from 'node:path'
 import fs from 'node:fs'
 import process from 'node:process'
@@ -109,7 +110,9 @@ export function updateSettings(patch: Partial<AppSettings>): AppSettings {
   const next = normalizeSettings({
     ...current,
     ...patch,
-    ...(patch.theme !== undefined ? { theme: normalizeTheme(patch.theme) } : {})
+    ...(patch.theme !== undefined && patch.appearance === undefined
+      ? { theme: normalizeTheme(patch.theme), appearance: normalizeAppearance(undefined, patch.theme) }
+      : {})
   })
   ensureLegacyLlmSecretsMigrated()
   writeSettingsFile(next)
@@ -350,6 +353,7 @@ function normalizeSettings(parsed: ParsedSettings): AppSettings {
     defaultScraper,
     defaultActressScraper,
     theme: normalizeTheme(parsed.theme),
+    appearance: normalizeAppearance(parsed.appearance, parsed.theme),
     closeToTray: normalizeBooleanSetting(parsed.closeToTray, DEFAULT_SETTINGS.closeToTray),
     privacyModeEnabled: normalizeBooleanSetting(
       parsed.privacyModeEnabled,
