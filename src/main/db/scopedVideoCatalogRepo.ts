@@ -12,11 +12,14 @@ import { getDb } from './database'
 import { createRevisionReadCache, type ReadCacheMemo } from './revisionReadCache'
 import { getVideoDetail } from './videoRepo'
 import { videoClassificationSelectExtras } from './videoListProjection'
+import { registerVideoContentMarkFunctions, videoContentMarksSelect } from './videoContentMarkSql'
+import { videoContentMarksFromMask } from '@shared/videoContentMarks'
 
 type ScopedVideoListRow = ScopedVideo & {
   resource_kinds_csv: string | null
   libraries_json: string
   has_pending_scrape: number | boolean
+  content_marks_mask?: number
 }
 
 export interface ScopedStoredVideoDetail extends StoredVideoDetail {
@@ -117,6 +120,7 @@ function scopeSql(scope: CatalogScope): ScopeSql {
 
 function listProjection(): string {
   return `${videoClassificationSelectExtras('v')},
+    ${videoContentMarksSelect('v', 'mark_resource.library_id = scope_m.preferred_library_id')},
     (SELECT resource.kind
      FROM video_resources resource
      WHERE resource.video_id = v.id
@@ -312,6 +316,7 @@ function hydrateRows(rows: ScopedVideoListRow[]): ScopedVideo[] {
       libraries_json: librariesJson,
       preferred_library_id: preferredLibraryId,
       membership_added_at: membershipAddedAt,
+      content_marks_mask: contentMarksMask,
       ...video
     } = row as ScopedVideoListRow & {
       preferred_library_id: number
@@ -324,6 +329,7 @@ function hydrateRows(rows: ScopedVideoListRow[]): ScopedVideo[] {
       ...video,
       has_pending_scrape: Boolean(video.has_pending_scrape),
       resource_kinds: resourceKinds,
+      ...(contentMarksMask ? { content_marks: videoContentMarksFromMask(contentMarksMask) } : {}),
       preferredLibraryId,
       membershipAddedAt,
       libraries: parseBadges(librariesJson)
@@ -369,6 +375,7 @@ export function createScopedVideoCatalogRepo(
 ): ScopedVideoCatalogRepo {
   const existing = connectedRepos.get(database)
   if (existing) return existing
+  registerVideoContentMarkFunctions(database)
   const cache = createRevisionReadCache(database, {
     counts: { maxEntries: 128, maxBytes: 256 * 1024 },
     pages: { maxEntries: 8, maxBytes: 1024 * 1024 },

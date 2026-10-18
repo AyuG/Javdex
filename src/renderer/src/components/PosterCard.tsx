@@ -11,6 +11,8 @@ import IconButton from './IconButton'
 import MediaTileActionButton from './MediaTileActionButton'
 import { UI_ICON, UI_ICON_SM } from './iconDefaults'
 import { getVideoResourceBadgeSummary } from './videoResourceBadges'
+import VideoContentBadges from './VideoContentBadges'
+import styles from './PosterCard.module.css'
 
 const STATUS_BADGE: Record<number, { text: string; cls: string } | null> = {
   0: { text: '未刮削', cls: 'unscraped' },
@@ -152,10 +154,14 @@ export default function PosterCard<TVideo extends VideoCard = Video>({
         ) : (
           <div className="poster-placeholder">{video.code}</div>
         )}
-        {badge && <span className={`poster-badge ${badge.cls}`}>{badge.text}</span>}
-        {video.has_pending_scrape ? (
-          <span className="poster-badge" data-pending="true">
-            待确认
+        <VideoContentBadges marks={video.content_marks} />
+        {badge || video.has_pending_scrape ? (
+          <span className={styles.statuses} data-selectable={Boolean(onToggleSelect)}
+            data-with-marks={Boolean(video.content_marks?.length)}>
+            {badge && <span className={`poster-badge ${badge.cls} ${styles.status}`}>{badge.text}</span>}
+            {video.has_pending_scrape ? (
+              <span className={`poster-badge ${styles.status} ${styles.pending}`} data-pending="true">待确认</span>
+            ) : null}
           </span>
         ) : null}
         {showResourceTypeBadges && resourceBadges.visible.length > 0 ? (

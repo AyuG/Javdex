@@ -1,0 +1,35 @@
+.root {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.badge {
+  --mark-color: var(--success);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
+  border: 1px solid color-mix(in srgb, var(--mark-color) 70%, var(--border-strong));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--mark-color) 15%, var(--surface-panel));
+  box-shadow: var(--shadow-floating-control);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.badge[data-kind='uncensored-cracked'] {
+  --mark-color: var(--warning);
+}
+
+.badge[data-kind='uncensored-leaked'] {
+  --mark-color: var(--text-accent);
+}

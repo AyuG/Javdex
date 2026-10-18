@@ -1,0 +1,35 @@
+.statuses {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  right: 6px;
+  left: 6px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.statuses[data-selectable='true'] {
+  left: 38px;
+}
+
+.statuses[data-with-marks='true'] {
+  top: 34px;
+  left: 6px;
+}
+
+.statuses > .status {
+  position: static;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending {
+  margin-left: auto;
+}

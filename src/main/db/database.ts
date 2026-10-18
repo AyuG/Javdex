@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { CURRENT_SCHEMA_VERSION, migrateDatabase } from './migrations'
 import { normalizeActressName } from './actressNameNormalization'
+import { registerVideoContentMarkFunctions } from './videoContentMarkSql'
 
 let db: Database.Database | null = null
 
@@ -23,6 +24,7 @@ export function initDatabaseAtPath(dbPath: string): Database.Database {
 }
 
 function registerReadFunctions(connection: Database.Database): void {
+  registerVideoContentMarkFunctions(connection)
   // Match renderer Unicode search semantics on both writer and reader connections.
   connection.function('tag_name_contains_folded', { deterministic: true }, (name: unknown, folded: unknown) =>
     typeof name === 'string' && typeof folded === 'string' && name.toLowerCase().includes(folded) ? 1 : 0)

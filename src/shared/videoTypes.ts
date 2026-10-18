@@ -1,4 +1,5 @@
 import type { Actress } from './actressTypes'
+import type { VideoContentMark } from './videoContentMarks'
 import type { ScrapedStatus, Tag } from './commonTypes'
 import type {
   DirectorAssignmentInput,
@@ -125,6 +126,8 @@ export interface Video {
   resource_count?: number
   /** Primary kind first, followed by each remaining kind at most once. */
   resource_kinds?: VideoResourceKind[]
+  /** Content marks derived from visible resource names and video tags. */
+  content_marks?: VideoContentMark[]
   /** Independent pending-decision dimension; not part of scraped_status. */
   has_pending_scrape?: boolean
 }
@@ -133,7 +136,7 @@ export type TagOrigin = 'manual' | 'scraped'
 
 /** Fields rendered by a poster card; long descriptions and editing data stay in detail reads. */
 export type VideoCard = Pick<Video,
-  'id' | 'code' | 'title' | 'cover_path' | 'scraped_status' | 'has_pending_scrape' | 'resource_kinds'>
+  'id' | 'code' | 'title' | 'cover_path' | 'scraped_status' | 'has_pending_scrape' | 'resource_kinds' | 'content_marks'>
 
 export interface VideoTag extends Tag {
   origin: TagOrigin

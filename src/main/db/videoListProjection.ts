@@ -1,4 +1,6 @@
 import type { Video, VideoCard, VideoResourceKind } from '@shared/videoTypes'
+import { videoContentMarksFromMask } from '@shared/videoContentMarks'
+import { videoContentMarksSelect } from './videoContentMarkSql'
 
 const VIDEO_RESOURCE_KINDS = new Set<VideoResourceKind>([
   'local',
@@ -8,7 +10,7 @@ const VIDEO_RESOURCE_KINDS = new Set<VideoResourceKind>([
   'ed2k'
 ])
 
-export type VideoListProjectionRow = Video & { resource_kinds_csv?: string | null }
+export type VideoListProjectionRow = Video & { resource_kinds_csv?: string | null; content_marks_mask?: number }
 
 /** Classification names are read-model projections; videos persist only stable entity ids. */
 export function videoClassificationSelectExtras(videoAlias = 'v'): string {
@@ -33,7 +35,8 @@ export function videoListSelectExtras(videoAlias = 'v'): string {
     (SELECT COUNT(*)
      FROM video_resources vr
      WHERE vr.video_id = ${videoAlias}.id) AS resource_count,
-    ${resourceKindsSelect(videoAlias)}`
+    ${resourceKindsSelect(videoAlias)},
+    ${videoContentMarksSelect(videoAlias)}`
 }
 
 function resourceKindsSelect(videoAlias: string): string {
@@ -53,19 +56,22 @@ function resourceKindsSelect(videoAlias: string): string {
 export type VideoCardProjectionRow = Omit<VideoCard, 'resource_kinds' | 'has_pending_scrape'> & {
   resource_kinds_csv: string | null
   has_pending_scrape: number | boolean
+  content_marks_mask?: number
 }
 
 export function videoCardSelect(videoAlias = 'v'): string {
   return `${videoAlias}.id, ${videoAlias}.code, ${videoAlias}.title, ${videoAlias}.cover_path,
     ${videoAlias}.scraped_status,
     EXISTS (SELECT 1 FROM pending_video_scrapes pvs WHERE pvs.video_id = ${videoAlias}.id) AS has_pending_scrape,
-    ${resourceKindsSelect(videoAlias)}`
+    ${resourceKindsSelect(videoAlias)},
+    ${videoContentMarksSelect(videoAlias)}`
 }
 
 export function hydrateVideoCardRows(rows: VideoCardProjectionRow[]): VideoCard[] {
-  return rows.map(({ resource_kinds_csv, has_pending_scrape, ...card }) => ({
+  return rows.map(({ resource_kinds_csv, has_pending_scrape, content_marks_mask, ...card }) => ({
     ...card,
     has_pending_scrape: Boolean(has_pending_scrape),
+    ...(content_marks_mask ? { content_marks: videoContentMarksFromMask(content_marks_mask) } : {}),
     resource_kinds: (resource_kinds_csv?.split(',') ?? []).filter(
       (kind): kind is VideoResourceKind => VIDEO_RESOURCE_KINDS.has(kind as VideoResourceKind)
     )
@@ -74,10 +80,11 @@ export function hydrateVideoCardRows(rows: VideoCardProjectionRow[]): VideoCard[
 
 export function hydrateVideoListRows(rows: VideoListProjectionRow[]): Video[] {
   return rows.map((row) => {
-    const { resource_kinds_csv: resourceKindsCsv, ...video } = row
+    const { resource_kinds_csv: resourceKindsCsv, content_marks_mask, ...video } = row
     const resourceKinds = (resourceKindsCsv?.split(',') ?? []).filter(
       (kind): kind is VideoResourceKind => VIDEO_RESOURCE_KINDS.has(kind as VideoResourceKind)
     )
-    return { ...video, has_pending_scrape: Boolean(video.has_pending_scrape), resource_kinds: resourceKinds }
+    return { ...video, has_pending_scrape: Boolean(video.has_pending_scrape), resource_kinds: resourceKinds,
+      ...(content_marks_mask ? { content_marks: videoContentMarksFromMask(content_marks_mask) } : {}) }
   })
 }
