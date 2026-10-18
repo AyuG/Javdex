@@ -154,7 +154,7 @@ export default function PosterCard<TVideo extends VideoCard = Video>({
         ) : (
           <div className="poster-placeholder">{video.code}</div>
         )}
-        <VideoContentBadges marks={video.content_marks} hasCornerAction={Boolean(onRemove) && !selectionMode} />
+        <VideoContentBadges marks={video.content_marks} />
         {badge || video.has_pending_scrape ? (
           <span className={styles.statuses} data-selectable={Boolean(onToggleSelect)}
             data-with-marks={Boolean(video.content_marks?.length)}>
@@ -183,7 +183,7 @@ export default function PosterCard<TVideo extends VideoCard = Video>({
         {onToggleSelect && (
           <button
             type="button"
-            className={`poster-select-toggle poster-hover-control${selected || selectionMode ? ' is-visible' : ''}${selected ? ' is-checked' : ''}`}
+            className={`poster-select-toggle poster-hover-control ${styles.select}${selected || selectionMode ? ' is-visible' : ''}${selected ? ' is-checked' : ''}`}
             aria-label={selected ? `取消选择 ${video.code}` : `选择 ${video.code}`}
             aria-pressed={selected}
             onClick={stopAndToggleSelect}

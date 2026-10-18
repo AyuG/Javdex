@@ -2,7 +2,7 @@
   position: absolute;
   z-index: 2;
   top: 6px;
-  right: 6px;
+  left: 6px;
   display: inline-flex;
   gap: 4px;
 }
@@ -16,18 +16,13 @@
   min-width: 22px;
   height: 22px;
   padding: 0 3px;
-  border: 1px solid color-mix(in srgb, var(--mark-color) 70%, var(--border-strong));
+  border: 1px solid color-mix(in srgb, var(--mark-color) 25%, var(--border-subtle));
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--mark-color) 15%, var(--surface-panel));
-  box-shadow: var(--shadow-floating-control);
   color: var(--text-primary);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 650;
   line-height: 1;
-}
-
-.root[data-corner-action='true'] {
-  right: 40px;
 }
 
 .badge[data-kind='uncensored-cracked'] {

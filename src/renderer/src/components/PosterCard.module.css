@@ -13,12 +13,18 @@
 }
 
 .statuses[data-selectable='true'] {
-  left: 38px;
+  right: 38px;
 }
 
 .statuses[data-with-marks='true'] {
   top: 34px;
   left: 6px;
+  right: 6px;
+}
+
+.select[aria-pressed] {
+  right: 6px;
+  left: auto;
 }
 
 .statuses > .status {
