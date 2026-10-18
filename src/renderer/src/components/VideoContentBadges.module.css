@@ -26,6 +26,10 @@
   line-height: 1;
 }
 
+.root[data-corner-action='true'] {
+  right: 40px;
+}
+
 .badge[data-kind='uncensored-cracked'] {
   --mark-color: var(--warning);
 }

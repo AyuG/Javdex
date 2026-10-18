@@ -154,7 +154,7 @@ export default function PosterCard<TVideo extends VideoCard = Video>({
         ) : (
           <div className="poster-placeholder">{video.code}</div>
         )}
-        <VideoContentBadges marks={video.content_marks} />
+        <VideoContentBadges marks={video.content_marks} hasCornerAction={Boolean(onRemove) && !selectionMode} />
         {badge || video.has_pending_scrape ? (
           <span className={styles.statuses} data-selectable={Boolean(onToggleSelect)}
             data-with-marks={Boolean(video.content_marks?.length)}>
