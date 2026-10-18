@@ -116,6 +116,11 @@
   --surface-success: rgba(61, 154, 98, 0.13);
   --surface-warning: color-mix(in srgb, var(--warning) 8%, var(--surface-panel));
   --surface-info: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+  /* Stable content identities over cover art, independent of the selected theme. */
+  --surface-video-mark-subtitle: #236d62;
+  --surface-video-mark-cracked: #865d25;
+  --surface-video-mark-leaked: #395b94;
+  --text-on-video-mark: #fff;
   --warning: var(--warn);
   --border-subtle: var(--border);
   --border-strong: color-mix(in srgb, var(--border) 70%, var(--text-2));
