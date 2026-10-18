@@ -12,8 +12,8 @@ type AssetFile = { rel: string; abs: string }
 type CopiedAssetFile = {
   source: string
   destination: string
-  deviceId: number
-  inode: number
+  deviceId: bigint
+  inode: bigint
 }
 
 function toPosixRel(root: string, abs: string): string {
@@ -144,13 +144,13 @@ function resolvePhysicalPathThroughExistingParents(input: string): string {
   }
 }
 
-function sameFileIdentity(left: fs.Stats, right: fs.Stats): boolean {
+function sameFileIdentity(left: fs.BigIntStats, right: fs.BigIntStats): boolean {
   return left.dev === right.dev && left.ino === right.ino
 }
 
-function statExistingPath(input: string): fs.Stats | null {
+function statExistingPath(input: string): fs.BigIntStats | null {
   try {
-    return fs.statSync(input)
+    return fs.statSync(input, { bigint: true })
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code
     if (code === 'ENOENT' || code === 'ENOTDIR') return null
@@ -158,7 +158,7 @@ function statExistingPath(input: string): fs.Stats | null {
   }
 }
 
-function pathOrAncestorHasIdentity(input: string, identity: fs.Stats): boolean {
+function pathOrAncestorHasIdentity(input: string, identity: fs.BigIntStats): boolean {
   let current = input
   while (true) {
     const stat = statExistingPath(current)
@@ -219,9 +219,9 @@ function copyFileAtomic(src: string, dest: string): boolean {
 }
 
 function removeCopiedFileIfUnchanged(file: CopiedAssetFile): void {
-  let stat: fs.Stats
+  let stat: fs.BigIntStats
   try {
-    stat = fs.lstatSync(file.destination)
+    stat = fs.lstatSync(file.destination, { bigint: true })
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
     throw error
@@ -300,7 +300,8 @@ export async function prepareMediaAssetsLocationMigration(
   }
 
   const files = listAssetFiles(from, false, '源媒体资源目录当前不可用，无法迁移')
-  const sourceIdentity = fs.statSync(from)
+  // NTFS file IDs can exceed Number's exact integer range, including for unrelated directories.
+  const sourceIdentity = fs.statSync(from, { bigint: true })
   const targetIdentity = statExistingPath(to)
   if (targetIdentity && sameFileIdentity(sourceIdentity, targetIdentity)) {
     throw new Error('媒体资源目标目录与当前目录实际指向同一位置')
@@ -342,7 +343,7 @@ export async function prepareMediaAssetsLocationMigration(
         status: 'running'
       })
       if (copyFileAtomic(abs, dest)) {
-        const copiedStat = fs.lstatSync(dest)
+        const copiedStat = fs.lstatSync(dest, { bigint: true })
         copiedThisRun.push({
           source: abs,
           destination: dest,
