@@ -107,6 +107,32 @@ describe('assetLocationMigration', () => {
     assert.equal(fs.existsSync(path.join(defaultRoot, 'covers', 'sample.jpg')), true)
   })
 
+  it('does not confuse distinct 64-bit Windows directory identities with an ancestor', async (t) => {
+    fs.writeFileSync(path.join(mediaAssetStore.subdirPath('covers'), 'sample.jpg'), MIN_JPEG)
+    const defaultRoot = defaultMediaAssetsRoot()
+    const customRoot = path.join(tempRoot!, 'custom_assets')
+    const first = await prepareMediaAssetsLocationMigration(oldRoot!, customRoot, () => {})
+    first.commit()
+    ensureMediaAssetDirsAt(defaultRoot)
+
+    const sourceInode = 2n ** 53n
+    const parentInode = sourceInode + 1n
+    assert.equal(Number(sourceInode), Number(parentInode))
+    const originalStat = fs.statSync
+    t.mock.method(fs, 'statSync', (input: fs.PathLike, ...args: unknown[]) => {
+      const stat = Reflect.apply(originalStat, fs, [input, ...args]) as fs.Stats | fs.BigIntStats
+      const resolved = path.resolve(String(input))
+      const inode = resolved === customRoot ? sourceInode : resolved === tempRoot ? parentInode : null
+      if (inode !== null) Object.assign(stat, { ino: typeof stat.ino === 'bigint' ? inode : Number(inode) })
+      return stat
+    })
+
+    const migration = await prepareMediaAssetsLocationMigration(customRoot, defaultRoot, () => {})
+    migration.commit()
+    assert.equal(migration.storedPath, '')
+    assert.equal(fs.existsSync(path.join(defaultRoot, 'covers', 'sample.jpg')), true)
+  })
+
   it('rolls back copied files without touching the active root', async () => {
     const assetPath = path.join(mediaAssetStore.subdirPath('covers'), 'rollback.jpg')
     fs.writeFileSync(assetPath, MIN_JPEG)
@@ -239,6 +265,27 @@ describe('assetLocationMigration', () => {
 
     assert.equal(fs.readFileSync(source, 'utf8'), 'source')
     assert.equal(fs.readFileSync(target, 'utf8'), 'replacement')
+  })
+
+  it('preserves a same-content replacement with a distinct 64-bit file identity on rollback', async (t) => {
+    const source = path.join(mediaAssetStore.subdirPath('covers'), 'same-content.jpg')
+    const target = path.join(newRoot!, 'covers', 'same-content.jpg')
+    fs.writeFileSync(source, 'source')
+    let inode = 2n ** 53n
+    const originalLstat = fs.lstatSync
+    t.mock.method(fs, 'lstatSync', (input: fs.PathLike, ...args: unknown[]) => {
+      const stat = Reflect.apply(originalLstat, fs, [input, ...args]) as fs.Stats | fs.BigIntStats
+      if (path.resolve(String(input)) === target) {
+        Object.assign(stat, { ino: typeof stat.ino === 'bigint' ? inode : Number(inode) })
+      }
+      return stat
+    })
+
+    const migration = await prepareMediaAssetsLocationMigration(oldRoot!, newRoot!, () => {})
+    inode += 1n
+    migration.rollback()
+    assert.equal(fs.readFileSync(source, 'utf8'), 'source')
+    assert.equal(fs.readFileSync(target, 'utf8'), 'source')
   })
 
   it('rejects an interrupted target whose file contents do not match the source', async () => {

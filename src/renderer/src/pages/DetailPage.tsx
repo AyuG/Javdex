@@ -31,6 +31,7 @@ import {
   getVideoScrapeStatusLabel
 } from '../components/VideoDetailMeta'
 import VideoDetailOverview from '../components/VideoDetailOverview'
+import VideoContentBadges from '../components/VideoContentBadges'
 import overviewStyles from '../components/VideoDetailOverview.module.css'
 import ImagePreviewLightbox from '../components/ImagePreviewLightbox'
 import { useHistoryBackedImagePreviewState } from '../components/ImagePreviewOverlayContext'
@@ -983,6 +984,7 @@ export default function DetailPage(): JSX.Element {
               ) : (
                 <div className="poster-placeholder">{video.code}</div>
               )}
+              <VideoContentBadges marks={video.content_marks} />
             </div>
 
             <div className={`detail-info ${overviewStyles.info}`}>

@@ -1,0 +1,41 @@
+.statuses {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  right: 6px;
+  left: 6px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.statuses[data-selectable='true'] {
+  right: 38px;
+}
+
+.statuses[data-with-marks='true'] {
+  top: 38px;
+  left: 6px;
+  right: 6px;
+}
+
+.select[aria-pressed] {
+  right: 6px;
+  left: auto;
+}
+
+.statuses > .status {
+  position: static;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending {
+  margin-left: auto;
+}

@@ -17,7 +17,8 @@ export function toVideoCard(video: VideoCard): VideoCard {
   return {
     id: video.id, code: video.code, title: video.title, cover_path: video.cover_path,
     scraped_status: video.scraped_status, has_pending_scrape: video.has_pending_scrape,
-    resource_kinds: video.resource_kinds?.slice()
+    resource_kinds: video.resource_kinds?.slice(),
+    ...(video.content_marks?.length ? { content_marks: video.content_marks.slice() } : {})
   }
 }
 

@@ -1,0 +1,35 @@
+.root {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.badge {
+  --mark-color: var(--surface-video-mark-subtitle);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  background: var(--mark-color);
+  color: var(--text-on-video-mark);
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.badge[data-kind='uncensored-cracked'] {
+  --mark-color: var(--surface-video-mark-cracked);
+}
+
+.badge[data-kind='uncensored-leaked'] {
+  --mark-color: var(--surface-video-mark-leaked);
+}

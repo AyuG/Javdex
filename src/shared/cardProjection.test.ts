@@ -7,7 +7,7 @@ import {
 
 const video = {
   id: 71, code: 'AB-001\u0000原始', title: '标题', cover_path: '/original/封面.jpg',
-  scraped_status: 1, resource_kinds: ['local'], has_pending_scrape: true,
+  scraped_status: 1, resource_kinds: ['local'], content_marks: ['chinese-subtitles'], has_pending_scrape: true,
   preferredLibraryId: 9, membershipAddedAt: '2026-01-01',
   libraries: [{ libraryId: 9, name: '原始库名', icon: 'library', color: 'slate' }]
 } satisfies ScopedVideoCard
@@ -27,8 +27,10 @@ test('runtime allowlists remove long metadata without changing source or route/a
   assert.equal(result.items[0].preferredLibraryId, 9)
   result.items[0].libraries[0].name = 'changed'
   result.items[0].resource_kinds?.pop()
+  result.items[0].content_marks?.pop()
   assert.equal(source.libraries[0].name, '原始库名')
   assert.deepEqual(source.resource_kinds, ['local'])
+  assert.deepEqual(source.content_marks, ['chinese-subtitles'])
 })
 
 test('actress cache drops crop/profile/source metadata and preserves face identity and counts', () => {

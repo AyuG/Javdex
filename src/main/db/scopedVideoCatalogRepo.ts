@@ -12,11 +12,14 @@ import { getDb } from './database'
 import { createRevisionReadCache, type ReadCacheMemo } from './revisionReadCache'
 import { getVideoDetail } from './videoRepo'
 import { videoClassificationSelectExtras } from './videoListProjection'
+import { registerVideoContentMarkFunctions, videoContentMarksSelect } from './videoContentMarkSql'
+import { videoContentMaskFromLabel, videoContentMaskFromResource, videoContentMarksFromMask } from '@shared/videoContentMarks'
 
 type ScopedVideoListRow = ScopedVideo & {
   resource_kinds_csv: string | null
   libraries_json: string
   has_pending_scrape: number | boolean
+  content_marks_mask?: number
 }
 
 export interface ScopedStoredVideoDetail extends StoredVideoDetail {
@@ -117,6 +120,7 @@ function scopeSql(scope: CatalogScope): ScopeSql {
 
 function listProjection(): string {
   return `${videoClassificationSelectExtras('v')},
+    ${videoContentMarksSelect('v', 'mark_resource.library_id = scope_m.preferred_library_id')},
     (SELECT resource.kind
      FROM video_resources resource
      WHERE resource.video_id = v.id
@@ -312,6 +316,7 @@ function hydrateRows(rows: ScopedVideoListRow[]): ScopedVideo[] {
       libraries_json: librariesJson,
       preferred_library_id: preferredLibraryId,
       membership_added_at: membershipAddedAt,
+      content_marks_mask: contentMarksMask,
       ...video
     } = row as ScopedVideoListRow & {
       preferred_library_id: number
@@ -324,6 +329,7 @@ function hydrateRows(rows: ScopedVideoListRow[]): ScopedVideo[] {
       ...video,
       has_pending_scrape: Boolean(video.has_pending_scrape),
       resource_kinds: resourceKinds,
+      ...(contentMarksMask ? { content_marks: videoContentMarksFromMask(contentMarksMask) } : {}),
       preferredLibraryId,
       membershipAddedAt,
       libraries: parseBadges(librariesJson)
@@ -369,6 +375,7 @@ export function createScopedVideoCatalogRepo(
 ): ScopedVideoCatalogRepo {
   const existing = connectedRepos.get(database)
   if (existing) return existing
+  registerVideoContentMarkFunctions(database)
   const cache = createRevisionReadCache(database, {
     counts: { maxEntries: 128, maxBytes: 256 * 1024 },
     pages: { maxEntries: 8, maxBytes: 1024 * 1024 },
@@ -499,8 +506,15 @@ export function createScopedVideoCatalogRepo(
         (resource) => (resource as VideoResource & { library_id: number }).library_id === context.libraryId
       )
       const primary = resources.find((resource) => resource.is_primary === 1)
+      const marksMask = resources.reduce(
+        (mask, resource) => mask | videoContentMaskFromResource(
+          resource.kind, resource.locator, resource.display_name, resource.strm_source_path, detail.code
+        ),
+        detail.tags.reduce((mask, tag) => mask | videoContentMaskFromLabel(tag.name), 0)
+      )
       return {
         ...detail,
+        ...(marksMask ? { content_marks: videoContentMarksFromMask(marksMask) } : {}),
         resources,
         primary_resource_kind: primary?.kind ?? null,
         resource_count: resources.length,
