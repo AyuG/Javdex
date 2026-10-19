@@ -13,7 +13,7 @@ import { createRevisionReadCache, type ReadCacheMemo } from './revisionReadCache
 import { getVideoDetail } from './videoRepo'
 import { videoClassificationSelectExtras } from './videoListProjection'
 import { registerVideoContentMarkFunctions, videoContentMarksSelect } from './videoContentMarkSql'
-import { videoContentMarksFromMask } from '@shared/videoContentMarks'
+import { videoContentMaskFromLabel, videoContentMaskFromResource, videoContentMarksFromMask } from '@shared/videoContentMarks'
 
 type ScopedVideoListRow = ScopedVideo & {
   resource_kinds_csv: string | null
@@ -506,8 +506,15 @@ export function createScopedVideoCatalogRepo(
         (resource) => (resource as VideoResource & { library_id: number }).library_id === context.libraryId
       )
       const primary = resources.find((resource) => resource.is_primary === 1)
+      const marksMask = resources.reduce(
+        (mask, resource) => mask | videoContentMaskFromResource(
+          resource.kind, resource.locator, resource.display_name, resource.strm_source_path, detail.code
+        ),
+        detail.tags.reduce((mask, tag) => mask | videoContentMaskFromLabel(tag.name), 0)
+      )
       return {
         ...detail,
+        ...(marksMask ? { content_marks: videoContentMarksFromMask(marksMask) } : {}),
         resources,
         primary_resource_kind: primary?.kind ?? null,
         resource_count: resources.length,

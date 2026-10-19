@@ -1,14 +1,12 @@
 import type Database from 'better-sqlite3'
-import { videoContentMaskFromFilename, videoContentMaskFromLabel } from '@shared/videoContentMarks'
+import { videoContentMaskFromResource, videoContentMaskFromLabel } from '@shared/videoContentMarks'
 
 const registered = new WeakSet<Database.Database>()
 
 /** Writer, readonly catalog reader and injected repository connections share the same rules. */
 export function registerVideoContentMarkFunctions(database: Database.Database): void {
   if (registered.has(database)) return
-  database.function('video_filename_mark_mask', { deterministic: true },
-    (kind: unknown, locator: unknown, displayName: unknown, strmSourcePath: unknown, code: unknown) =>
-      videoContentMaskFromFilename(kind === 'local' ? locator : strmSourcePath || displayName, code))
+  database.function('video_filename_mark_mask', { deterministic: true }, videoContentMaskFromResource)
   database.function('video_tag_mark_mask', { deterministic: true }, videoContentMaskFromLabel)
   database.aggregate<number>('video_mark_union', {
     start: 0,

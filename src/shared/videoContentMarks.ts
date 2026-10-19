@@ -44,3 +44,14 @@ export function videoContentMarksFromMask(value: unknown): VideoContentMark[] {
   const mask = typeof value === 'number' && Number.isSafeInteger(value) ? value : 0
   return VIDEO_CONTENT_MARKS.filter((mark) => (mask & mark.mask) !== 0).map((mark) => mark.id)
 }
+
+/** Both card queries and scoped detail reads use the actual filename, never URL tokens. */
+export function videoContentMaskFromResource(
+  kind: unknown,
+  locator: unknown,
+  displayName: unknown,
+  strmSourcePath: unknown,
+  code: unknown
+): number {
+  return videoContentMaskFromFilename(kind === 'local' ? locator : strmSourcePath || displayName, code)
+}
